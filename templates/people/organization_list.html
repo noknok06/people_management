@@ -1,0 +1,370 @@
+<!-- templates/people_management/organization_list.html -->
+{% extends 'base.html' %}
+
+{% block title %}組織一覧 - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">組織管理</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'organization_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> 新しい組織を追加
+        </a>
+    </div>
+</div>
+
+<!-- 組織統計 -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="card-title mb-0">{{ departments.count }}</h5>
+                        <p class="card-text">部門</p>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-building fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="card-title mb-0">{{ divisions.count }}</h5>
+                        <p class="card-text">部</p>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-diagram-2 fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="card-title mb-0">{{ sections.count }}</h5>
+                        <p class="card-text">課</p>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-diagram-3 fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 部門一覧 -->
+{% if departments %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0 org-level-0">
+                <i class="bi bi-building"></i> 部門一覧
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for department in departments %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-danger">
+                            <div class="card-body">
+                                <h6 class="card-title org-level-0">
+                                    <a href="{% url 'organization_detail' department.pk %}">
+                                        {{ department.name }}
+                                    </a>
+                                </h6>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        <i class="bi bi-people"></i> {{ department.member_count }}人
+                                        <br>
+                                        <i class="bi bi-diagram-2"></i> {{ department.children.count }}部
+                                    </small>
+                                </p>
+                                {% if department.description %}
+                                    <p class="card-text">
+                                        <small>{{ department.description|truncatechars:50 }}</small>
+                                    </p>
+                                {% endif %}
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        {{ department.created_at|date:"Y/m/d" }}
+                                    </small>
+                                    <div class="btn-group">
+                                        <a href="{% url 'organization_detail' department.pk %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            詳細
+                                        </a>
+                                        <a href="{% url 'person_list' %}?organization={{ department.id }}" 
+                                           class="btn btn-sm btn-outline-success">
+                                            メンバー
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- 部一覧 -->
+{% if divisions %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0 org-level-1">
+                <i class="bi bi-diagram-2"></i> 部一覧
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for division in divisions %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <h6 class="card-title org-level-1">
+                                    <a href="{% url 'organization_detail' division.pk %}">
+                                        {{ division.name }}
+                                    </a>
+                                </h6>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        <i class="bi bi-building"></i> {{ division.parent.name }}
+                                        <br>
+                                        <i class="bi bi-people"></i> {{ division.member_count }}人
+                                        <i class="bi bi-diagram-3"></i> {{ division.children.count }}課
+                                    </small>
+                                </p>
+                                {% if division.description %}
+                                    <p class="card-text">
+                                        <small>{{ division.description|truncatechars:50 }}</small>
+                                    </p>
+                                {% endif %}
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        {{ division.created_at|date:"Y/m/d" }}
+                                    </small>
+                                    <div class="btn-group">
+                                        <a href="{% url 'organization_detail' division.pk %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            詳細
+                                        </a>
+                                        <a href="{% url 'person_list' %}?organization={{ division.id }}" 
+                                           class="btn btn-sm btn-outline-success">
+                                            メンバー
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- 課一覧 -->
+{% if sections %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0 org-level-2">
+                <i class="bi bi-diagram-3"></i> 課一覧
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for section in sections %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-info">
+                            <div class="card-body">
+                                <h6 class="card-title org-level-2">
+                                    <a href="{% url 'organization_detail' section.pk %}">
+                                        {{ section.name }}
+                                    </a>
+                                </h6>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        <i class="bi bi-diagram-2"></i> {{ section.parent.name }}
+                                        <br>
+                                        <i class="bi bi-people"></i> {{ section.member_count }}人
+                                    </small>
+                                </p>
+                                {% if section.description %}
+                                    <p class="card-text">
+                                        <small>{{ section.description|truncatechars:50 }}</small>
+                                    </p>
+                                {% endif %}
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        {{ section.created_at|date:"Y/m/d" }}
+                                    </small>
+                                    <div class="btn-group">
+                                        <a href="{% url 'organization_detail' section.pk %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            詳細
+                                        </a>
+                                        <a href="{% url 'person_list' %}?organization={{ section.id }}" 
+                                           class="btn btn-sm btn-outline-success">
+                                            メンバー
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- 組織がない場合 -->
+{% if not departments and not divisions and not sections %}
+    <div class="text-center py-5">
+        <i class="bi bi-building fs-1 text-muted"></i>
+        <h4 class="text-muted mt-3">組織が登録されていません</h4>
+        <p class="text-muted">最初の組織を追加してみましょう。</p>
+        <a href="{% url 'organization_create' %}" class="btn btn-primary">
+            組織を追加
+        </a>
+    </div>
+{% endif %}
+
+<!-- 組織階層図 -->
+{% if departments %}
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-diagram-3"></i> 組織階層図
+            </h5>
+            <a href="{% url 'relationship_graph' %}" class="btn btn-sm btn-outline-primary">
+                詳細な関連図を表示
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="org-tree">
+                {% for department in departments %}
+                    <div class="org-node level-0">
+                        <div class="org-card bg-danger text-white">
+                            <strong>{{ department.name }}</strong>
+                            <small class="d-block">{{ department.member_count }}人</small>
+                        </div>
+                        
+                        {% if department.children.all %}
+                            <div class="org-children">
+                                {% for division in department.children.all %}
+                                    <div class="org-node level-1">
+                                        <div class="org-card bg-warning text-white">
+                                            <strong>{{ division.name }}</strong>
+                                            <small class="d-block">{{ division.members.count }}人</small>
+                                        </div>
+                                        
+                                        {% if division.children.all %}
+                                            <div class="org-children">
+                                                {% for section in division.children.all %}
+                                                    <div class="org-node level-2">
+                                                        <div class="org-card bg-info text-white">
+                                                            <strong>{{ section.name }}</strong>
+                                                            <small class="d-block">{{ section.members.count }}人</small>
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.org-tree {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: Arial, sans-serif;
+}
+
+.org-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 10px;
+    position: relative;
+}
+
+.org-card {
+    padding: 10px 15px;
+    border-radius: 8px;
+    text-align: center;
+    min-width: 120px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 10px;
+}
+
+.org-children {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    position: relative;
+}
+
+.org-children::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 10px;
+    background-color: #ccc;
+}
+
+.level-1 .org-children,
+.level-2 .org-children {
+    margin-top: 20px;
+}
+
+.level-1::before,
+.level-2::before {
+    content: '';
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 20px;
+    background-color: #ccc;
+}
+
+@media (max-width: 768px) {
+    .org-children {
+        flex-direction: column;
+    }
+    
+    .org-card {
+        min-width: 100px;
+        font-size: 0.9em;
+    }
+}
+</style>
+{% endblock %}

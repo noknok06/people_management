@@ -1,0 +1,214 @@
+<!-- templates/people_management/person_list.html -->
+{% extends 'base.html' %}
+
+{% block title %}人物一覧 - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">人物管理</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'person_create' %}" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i> 新しい人物を追加
+        </a>
+    </div>
+</div>
+
+<!-- 検索・フィルターフォーム -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">検索</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ current_search }}" placeholder="名前、役職、組織名、性格で検索...">
+                    <button class="btn btn-outline-secondary" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label for="organization" class="form-label">組織</label>
+                <select class="form-control" id="organization" name="organization">
+                    <option value="">すべての組織</option>
+                    {% for org in organizations %}
+                        <option value="{{ org.id }}" 
+                                {% if current_org == org.id|stringformat:"s" %}selected{% endif %}>
+                            {{ org.get_full_path }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="tag" class="form-label">タグ</label>
+                <select class="form-control" id="tag" name="tag">
+                    <option value="">すべてのタグ</option>
+                    {% for tag in tags %}
+                        <option value="{{ tag.id }}" 
+                                {% if current_tag == tag.id|stringformat:"s" %}selected{% endif %}>
+                            {{ tag.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">フィルター</button>
+                <a href="{% url 'person_list' %}" class="btn btn-outline-secondary">クリア</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 検索結果表示 -->
+{% if current_search or current_org or current_tag %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        フィルター結果: {{ page_obj.paginator.count }}件の人物が見つかりました
+        {% if current_search %}
+            <span class="badge bg-primary">検索: "{{ current_search }}"</span>
+        {% endif %}
+        {% if current_org %}
+            <span class="badge bg-success">組織フィルター適用</span>
+        {% endif %}
+        {% if current_tag %}
+            <span class="badge bg-warning">タグフィルター適用</span>
+        {% endif %}
+    </div>
+{% endif %}
+
+<!-- 人物カード一覧 -->
+<div class="row">
+    {% for person in people %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card person-card h-100">
+                <div class="card-body">
+                    <div class="row align-items-center mb-3">
+                        <div class="col-auto">
+                            {% if person.photo %}
+                                <img src="{{ person.photo.url }}" alt="{{ person.name }}" class="person-photo">
+                            {% else %}
+                                <div class="person-photo bg-light d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-person fs-4 text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col">
+                            <h5 class="card-title mb-1">{{ person.name }}</h5>
+                            <p class="card-text text-muted mb-0">{{ person.position }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="bi bi-building"></i> {{ person.organization.get_full_path }}
+                        </small>
+                    </div>
+                    
+                    {% if person.personality %}
+                        <p class="card-text">
+                            <small>{{ person.personality|truncatechars:100 }}</small>
+                        </p>
+                    {% endif %}
+                    
+                    {% if person.tags.all %}
+                        <div class="mb-3">
+                            {% for tag in person.tags.all %}
+                                <span class="tag-badge" style="background-color: {{ tag.color }};">
+                                    {{ tag.name }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if person.email %}
+                                <a href="mailto:{{ person.email }}" class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="bi bi-envelope"></i>
+                                </a>
+                            {% endif %}
+                            {% if person.phone %}
+                                <a href="tel:{{ person.phone }}" class="btn btn-sm btn-outline-success me-1">
+                                    <i class="bi bi-telephone"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <a href="{% url 'person_detail' person.pk %}" class="btn btn-sm btn-primary">
+                                詳細 <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>
+                        <i class="bi bi-calendar-plus"></i> {{ person.created_at|date:"Y/m/d" }}
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'person_edit' person.pk %}" class="float-end">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="bi bi-people fs-1 text-muted"></i>
+                <h4 class="text-muted mt-3">人物が見つかりませんでした</h4>
+                {% if current_search or current_org or current_tag %}
+                    <p class="text-muted">検索条件を変更してもう一度お試しください。</p>
+                    <a href="{% url 'person_list' %}" class="btn btn-outline-primary">
+                        すべての人物を表示
+                    </a>
+                {% else %}
+                    <p class="text-muted">最初の人物を追加してみましょう。</p>
+                    <a href="{% url 'person_create' %}" class="btn btn-primary">
+                        人物を追加
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- ページネーション -->
+{% if is_paginated %}
+    <nav aria-label="人物一覧ページナビゲーション">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if current_search %}search={{ current_search }}&{% endif %}{% if current_org %}organization={{ current_org }}&{% endif %}{% if current_tag %}tag={{ current_tag }}&{% endif %}page=1">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% if current_search %}search={{ current_search }}&{% endif %}{% if current_org %}organization={{ current_org }}&{% endif %}{% if current_tag %}tag={{ current_tag }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link">
+                    {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+                </span>
+            </li>
+            
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if current_search %}search={{ current_search }}&{% endif %}{% if current_org %}organization={{ current_org }}&{% endif %}{% if current_tag %}tag={{ current_tag }}&{% endif %}page={{ page_obj.next_page_number }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% if current_search %}search={{ current_search }}&{% endif %}{% if current_org %}organization={{ current_org }}&{% endif %}{% if current_tag %}tag={{ current_tag }}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endif %}
+{% endblock %}

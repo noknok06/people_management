@@ -1,0 +1,312 @@
+<!-- templates/people_management/person_detail.html -->
+{% extends 'base.html' %}
+
+{% block title %}{{ person.name }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">{{ person.name }}</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        {% if user.is_authenticated %}
+            <div class="btn-group me-2">
+                <a href="{% url 'person_edit' person.pk %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-pencil"></i> 編集
+                </a>
+                <a href="{% url 'person_list' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> 一覧に戻る
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <!-- 基本情報カード -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                {% if person.photo %}
+                    <img src="{{ person.photo.url }}" alt="{{ person.name }}" 
+                         class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width: 150px; height: 150px;">
+                        <i class="bi bi-person fs-1 text-muted"></i>
+                    </div>
+                {% endif %}
+                
+                <h4>{{ person.name }}</h4>
+                <p class="text-muted">{{ person.position }}</p>
+                
+                <div class="mb-3">
+                    <span class="badge bg-primary">{{ person.organization.get_level_display }}</span>
+                </div>
+                
+                {% if person.tags.all %}
+                    <div class="mb-3">
+                        {% for tag in person.tags.all %}
+                            <span class="tag-badge" style="background-color: {{ tag.color }};">
+                                {{ tag.name }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <div class="d-grid gap-2">
+                    {% if person.email %}
+                        <a href="mailto:{{ person.email }}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-envelope"></i> {{ person.email }}
+                        </a>
+                    {% endif %}
+                    {% if person.phone %}
+                        <a href="tel:{{ person.phone }}" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-telephone"></i> {{ person.phone }}
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- 組織情報カード -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-building"></i> 所属組織
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>組織パス:</strong><br>
+                    <a href="{% url 'organization_detail' person.organization.pk %}">
+                        {{ person.organization.get_full_path }}
+                    </a>
+                </p>
+                <p class="mb-0">
+                    <strong>役職:</strong> {{ person.position }}
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 詳細情報 -->
+    <div class="col-md-8">
+        <!-- 性格・特徴 -->
+        {% if person.personality %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-badge"></i> 性格・特徴
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ person.personality|linebreaks }}</p>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- 備考 -->
+        {% if person.notes %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-journal-text"></i> 備考
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ person.notes|linebreaks }}</p>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- 人物関係 -->
+        {% if outgoing_relations or incoming_relations %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-people"></i> 人物関係
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if outgoing_relations %}
+                        <h6 class="text-muted mb-3">この人からの関係</h6>
+                        <div class="row mb-4">
+                            {% for relation in outgoing_relations %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border-start border-primary border-3">
+                                        <div class="card-body py-2">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    {% if relation.to_person.photo %}
+                                                        <img src="{{ relation.to_person.photo.url }}" 
+                                                             alt="{{ relation.to_person.name }}"
+                                                             class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                                    {% else %}
+                                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center"
+                                                             style="width: 40px; height: 40px;">
+                                                            <i class="bi bi-person text-muted"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-1">
+                                                        <a href="{% url 'person_detail' relation.to_person.pk %}">
+                                                            {{ relation.to_person.name }}
+                                                        </a>
+                                                    </h6>
+                                                    <p class="mb-1 text-muted small">{{ relation.to_person.position }}</p>
+                                                    <span class="badge bg-primary">{{ relation.get_relation_type_display }}</span>
+                                                </div>
+                                            </div>
+                                            {% if relation.description %}
+                                                <p class="mt-2 mb-0 small text-muted">{{ relation.description }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    {% if incoming_relations %}
+                        <h6 class="text-muted mb-3">この人への関係</h6>
+                        <div class="row">
+                            {% for relation in incoming_relations %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border-start border-success border-3">
+                                        <div class="card-body py-2">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    {% if relation.from_person.photo %}
+                                                        <img src="{{ relation.from_person.photo.url }}" 
+                                                             alt="{{ relation.from_person.name }}"
+                                                             class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                                    {% else %}
+                                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center"
+                                                             style="width: 40px; height: 40px;">
+                                                            <i class="bi bi-person text-muted"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-1">
+                                                        <a href="{% url 'person_detail' relation.from_person.pk %}">
+                                                            {{ relation.from_person.name }}
+                                                        </a>
+                                                    </h6>
+                                                    <p class="mb-1 text-muted small">{{ relation.from_person.position }}</p>
+                                                    <span class="badge bg-success">{{ relation.get_relation_type_display }}</span>
+                                                </div>
+                                            </div>
+                                            {% if relation.description %}
+                                                <p class="mt-2 mb-0 small text-muted">{{ relation.description }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- 同じ組織のメンバー -->
+        {% if colleagues %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-people-fill"></i> 同じ組織のメンバー
+                    </h5>
+                    <a href="{% url 'person_list' %}?organization={{ person.organization.id }}" class="btn btn-sm btn-outline-primary">
+                        すべて表示
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for colleague in colleagues %}
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        {% if colleague.photo %}
+                                            <img src="{{ colleague.photo.url }}" alt="{{ colleague.name }}"
+                                                 class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center"
+                                                 style="width: 40px; height: 40px;">
+                                                <i class="bi bi-person text-muted"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'person_detail' colleague.pk %}">
+                                                {{ colleague.name }}
+                                            </a>
+                                        </h6>
+                                        <p class="mb-0 text-muted small">{{ colleague.position }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- 登録情報 -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle"></i> 登録情報
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <p class="mb-2">
+                            <strong>作成日時:</strong><br>
+                            {{ person.created_at|date:"Y年m月d日 H:i" }}
+                        </p>
+                    </div>
+                    <div class="col-sm-6">
+                        <p class="mb-2">
+                            <strong>更新日時:</strong><br>
+                            {{ person.updated_at|date:"Y年m月d日 H:i" }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- アクションボタン -->
+{% if user.is_authenticated %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="bi bi-gear"></i> アクション
+                    </h6>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'person_edit' person.pk %}" class="btn btn-primary">
+                            <i class="bi bi-pencil"></i> 編集
+                        </a>
+                        <a href="{% url 'person_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-list"></i> 一覧
+                        </a>
+                        <a href="{% url 'person_create' %}" class="btn btn-outline-success">
+                            <i class="bi bi-person-plus"></i> 新規追加
+                        </a>
+                        <a href="{% url 'relationship_graph' %}?organization={{ person.organization.id }}" 
+                           class="btn btn-outline-info">
+                            <i class="bi bi-share"></i> 関連図表示
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

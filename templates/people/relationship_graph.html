@@ -1,0 +1,669 @@
+<!-- templates/people_management/relationship_graph.html -->
+{% extends 'base.html' %}
+
+{% block title %}関連図 - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">関連図</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-primary" id="orgGraphBtn">
+                <i class="bi bi-building"></i> 組織関連図
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="personGraphBtn">
+                <i class="bi bi-people"></i> 人物関連図
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- フィルターコントロール -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="tagFilter" class="form-label">タグフィルター</label>
+                <select class="form-control" id="tagFilter">
+                    <option value="">すべてのタグ</option>
+                    {% for tag in tags %}
+                        <option value="{{ tag.id }}" data-color="{{ tag.color }}">
+                            {{ tag.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3" id="orgFilterContainer" style="display: none;">
+                <label for="orgFilter" class="form-label">組織フィルター</label>
+                <select class="form-control" id="orgFilter">
+                    <option value="">すべての組織</option>
+                    {% for org in object_list %}
+                        <option value="{{ org.id }}">{{ org.get_full_path }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">表示オプション</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="showLabels" checked>
+                    <label class="form-check-label" for="showLabels">
+                        ラベルを表示
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="button" class="btn btn-primary" id="refreshGraph">
+                    <i class="bi bi-arrow-clockwise"></i> 更新
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- グラフ表示エリア -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" id="graphTitle">
+                    <i class="bi bi-diagram-3"></i> 組織関連図
+                </h5>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="zoomIn">
+                        <i class="bi bi-zoom-in"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="zoomOut">
+                        <i class="bi bi-zoom-out"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="resetZoom">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div id="graphContainer" class="graph-container" style="height: 600px; position: relative; overflow: hidden;">
+                    <div id="loadingSpinner" class="d-flex justify-content-center align-items-center h-100" 
+                         style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255,255,255,0.9); z-index: 1000; display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- グラフ凡例 -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">組織関連図 - 関係の種類</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="me-2" style="width: 20px; height: 2px; background-color: #007bff;"></div>
+                            <small>協力関係</small>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="me-2" style="width: 20px; height: 2px; background-color: #28a745;"></div>
+                            <small>報告関係</small>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="me-2" style="width: 20px; height: 2px; background-color: #ffc107;"></div>
+                            <small>サポート関係</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="me-2" style="width: 20px; height: 2px; background-color: #dc3545;"></div>
+                            <small>パートナー関係</small>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="me-2" style="width: 20px; height: 2px; background-color: #6f42c1;"></div>
+                            <small>依存関係</small>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="me-2" style="width: 20px; height: 2px; background-color: #17a2b8;"></div>
+                            <small>連絡関係</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">操作方法</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li><i class="bi bi-mouse text-primary"></i> <small>ドラッグ: ノードを移動</small></li>
+                    <li><i class="bi bi-mouse2 text-success"></i> <small>ホイール: ズーム</small></li>
+                    <li><i class="bi bi-cursor text-info"></i> <small>クリック: ノード詳細表示</small></li>
+                    <li><i class="bi bi-arrows-move text-warning"></i> <small>背景ドラッグ: 全体移動</small></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ノード詳細モーダル -->
+<div class="modal fade" id="nodeDetailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nodeDetailTitle">詳細情報</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="nodeDetailBody">
+                <!-- 動的にコンテンツが挿入されます -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                <a href="#" class="btn btn-primary" id="nodeDetailLink">詳細ページへ</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+class RelationshipGraph {
+    constructor() {
+        this.svg = null;
+        this.simulation = null;
+        this.currentMode = 'organization'; // 'organization' or 'person'
+        this.width = 0;
+        this.height = 0;
+        this.zoom = d3.zoom();
+        
+        this.init();
+        this.bindEvents();
+    }
+    
+    init() {
+        const container = d3.select('#graphContainer');
+        this.width = container.node().offsetWidth;
+        this.height = container.node().offsetHeight;
+        
+        // スピナーを初期状態で非表示にする
+        this.hideSpinner();
+        
+        // SVG要素を作成
+        this.svg = container.append('svg')
+            .attr('width', this.width)
+            .attr('height', this.height)
+            .style('position', 'absolute')
+            .style('top', '0')
+            .style('left', '0')
+            .style('z-index', '1');
+        
+        // ズーム機能を設定
+        this.zoom.scaleExtent([0.1, 4])
+            .on('zoom', (event) => {
+                this.svg.select('.graph-group')
+                    .attr('transform', event.transform);
+            });
+        
+        this.svg.call(this.zoom);
+        
+        // グラフグループを作成
+        this.svg.append('g').attr('class', 'graph-group');
+        
+        // 初期データを読み込み
+        this.loadGraph();
+    }
+    
+    bindEvents() {
+        // モード切り替えボタン
+        d3.select('#orgGraphBtn').on('click', () => {
+            this.currentMode = 'organization';
+            this.updateUI();
+            this.hideSpinner(); // スピナーを確実に非表示
+            this.loadGraph();
+        });
+        
+        d3.select('#personGraphBtn').on('click', () => {
+            this.currentMode = 'person';
+            this.updateUI();
+            this.hideSpinner(); // スピナーを確実に非表示
+            this.loadGraph();
+        });
+        
+        // フィルター変更
+        d3.select('#tagFilter').on('change', () => {
+            this.hideSpinner(); // スピナーを確実に非表示
+            this.loadGraph();
+        });
+        d3.select('#orgFilter').on('change', () => {
+            this.hideSpinner(); // スピナーを確実に非表示
+            this.loadGraph();
+        });
+        
+        // 表示オプション
+        d3.select('#showLabels').on('change', () => this.toggleLabels());
+        
+        // ズームコントロール
+        d3.select('#zoomIn').on('click', () => {
+            this.svg.transition().duration(300).call(
+                this.zoom.scaleBy, 1.5
+            );
+        });
+        
+        d3.select('#zoomOut').on('click', () => {
+            this.svg.transition().duration(300).call(
+                this.zoom.scaleBy, 1 / 1.5
+            );
+        });
+        
+        d3.select('#resetZoom').on('click', () => {
+            this.svg.transition().duration(500).call(
+                this.zoom.transform,
+                d3.zoomIdentity
+            );
+        });
+        
+        // 更新ボタン
+        d3.select('#refreshGraph').on('click', () => {
+            this.hideSpinner(); // スピナーを確実に非表示
+            this.loadGraph();
+        });
+    }
+    
+    hideSpinner() {
+        // スピナーを確実に非表示にするヘルパーメソッド
+        console.log('hideSpinner called');
+        
+        // D3での非表示
+        const spinner = d3.select('#loadingSpinner');
+        spinner.style('display', 'none').classed('hidden', true);
+        
+        // ネイティブJSでの非表示（フォールバック）
+        const spinnerElement = document.getElementById('loadingSpinner');
+        if (spinnerElement) {
+            spinnerElement.style.display = 'none';
+            spinnerElement.classList.add('hidden');
+        }
+        
+        // さらなるフォールバック（遅延実行）
+        setTimeout(() => {
+            if (spinnerElement) {
+                spinnerElement.style.display = 'none';
+                spinnerElement.style.visibility = 'hidden';
+                spinnerElement.style.opacity = '0';
+            }
+        }, 100);
+        
+        console.log('hideSpinner executed');
+    }
+    
+    updateUI() {
+        const isOrgMode = this.currentMode === 'organization';
+        
+        // ボタンのアクティブ状態を更新
+        d3.select('#orgGraphBtn')
+            .classed('btn-primary', isOrgMode)
+            .classed('btn-outline-primary', !isOrgMode);
+        
+        d3.select('#personGraphBtn')
+            .classed('btn-primary', !isOrgMode)
+            .classed('btn-outline-secondary', isOrgMode);
+        
+        // タイトルを更新
+        d3.select('#graphTitle')
+            .html(`<i class="bi bi-${isOrgMode ? 'building' : 'people'}"></i> ${isOrgMode ? '組織' : '人物'}関連図`);
+        
+        // 組織フィルターの表示/非表示
+        d3.select('#orgFilterContainer')
+            .style('display', isOrgMode ? 'none' : 'block');
+    }
+    
+    async loadGraph() {
+        // ローディング表示
+        const spinner = d3.select('#loadingSpinner');
+        console.log('Loading graph - showing spinner');
+        spinner.style('display', 'flex').classed('hidden', false);
+        
+        try {
+            const params = new URLSearchParams();
+            const tagFilter = d3.select('#tagFilter').property('value');
+            const orgFilter = d3.select('#orgFilter').property('value');
+            
+            if (tagFilter) params.append('tag', tagFilter);
+            if (orgFilter && this.currentMode === 'person') params.append('organization', orgFilter);
+            
+            const url = this.currentMode === 'organization' 
+                ? `/api/organization-graph/?${params}`
+                : `/api/person-graph/?${params}`;
+            
+            console.log('Loading data from:', url);
+            
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            console.log('Received data:', data);
+            
+            if (!data.nodes || !Array.isArray(data.nodes)) {
+                throw new Error('Invalid data format: nodes array is missing');
+            }
+            
+            if (!data.edges || !Array.isArray(data.edges)) {
+                console.warn('No edges data found, using empty array');
+                data.edges = [];
+            }
+            
+            console.log('Rendering graph...');
+            this.renderGraph(data);
+            console.log('Graph rendered successfully');
+            
+        } catch (error) {
+            console.error('グラフデータの読み込みに失敗しました:', error);
+            
+            // エラーメッセージを表示
+            const graphGroup = this.svg.select('.graph-group');
+            graphGroup.selectAll('*').remove();
+            graphGroup.append('text')
+                .attr('x', this.width / 2)
+                .attr('y', this.height / 2 - 10)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '16px')
+                .style('fill', '#dc3545')
+                .text('データの読み込みに失敗しました');
+            
+            graphGroup.append('text')
+                .attr('x', this.width / 2)
+                .attr('y', this.height / 2 + 20)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '12px')
+                .style('fill', '#6c757d')
+                .text(error.message);
+                
+        } finally {
+            // 必ずローディングを非表示にする（複数の方法で確実に）
+            console.log('Hiding spinner');
+            this.hideSpinner();
+        }
+    }
+    
+    renderGraph(data) {
+        // スピナーを確実に非表示にする
+        const spinner = d3.select('#loadingSpinner');
+        spinner.style('display', 'none');
+        
+        // 既存のグラフをクリア
+        const graphGroup = this.svg.select('.graph-group');
+        graphGroup.selectAll('*').remove();
+        
+        if (!data.nodes || data.nodes.length === 0) {
+            graphGroup.append('text')
+                .attr('x', this.width / 2)
+                .attr('y', this.height / 2)
+                .attr('text-anchor', 'middle')
+                .attr('class', 'no-data-message')
+                .style('font-size', '18px')
+                .style('fill', '#6c757d')
+                .text('表示するデータがありません');
+            return;
+        }
+        
+        // データの検証
+        console.log('Rendering graph with data:', data);
+        
+        // エッジのsource/targetがノードに存在するかチェック
+        const nodeIds = new Set(data.nodes.map(n => n.id));
+        const validEdges = data.edges.filter(edge => {
+            const sourceExists = nodeIds.has(edge.source);
+            const targetExists = nodeIds.has(edge.target);
+            if (!sourceExists || !targetExists) {
+                console.warn('Invalid edge found:', edge, 'Source exists:', sourceExists, 'Target exists:', targetExists);
+                return false;
+            }
+            return true;
+        });
+        
+        console.log(`Valid edges: ${validEdges.length} / ${data.edges.length}`);
+        
+        // シミュレーションを設定
+        this.simulation = d3.forceSimulation(data.nodes)
+            .force('link', d3.forceLink(validEdges)
+                .id(d => d.id)
+                .distance(100)
+                .strength(0.5)
+            )
+            .force('charge', d3.forceManyBody().strength(-300))
+            .force('center', d3.forceCenter(this.width / 2, this.height / 2))
+            .force('collision', d3.forceCollide().radius(d => this.getNodeRadius(d) + 5));
+        
+        // 矢印マーカーを定義
+        if (!this.svg.select('#arrowhead').node()) {
+            this.svg.append('defs').append('marker')
+                .attr('id', 'arrowhead')
+                .attr('viewBox', '0 -5 10 10')
+                .attr('refX', 15)
+                .attr('refY', 0)
+                .attr('markerWidth', 6)
+                .attr('markerHeight', 6)
+                .attr('orient', 'auto')
+                .append('path')
+                .attr('d', 'M0,-5L10,0L0,5')
+                .attr('fill', '#999');
+        }
+        
+        // エッジを描画
+        const links = graphGroup.append('g')
+            .attr('class', 'links')
+            .selectAll('line')
+            .data(validEdges)
+            .join('line')
+            .attr('stroke', d => this.getEdgeColor(d.type))
+            .attr('stroke-width', d => this.getEdgeWidth(d))
+            .attr('stroke-opacity', 0.6)
+            .attr('marker-end', 'url(#arrowhead)');
+        
+        // ノードを描画
+        const nodes = graphGroup.append('g')
+            .attr('class', 'nodes')
+            .selectAll('circle')
+            .data(data.nodes)
+            .join('circle')
+            .attr('r', d => this.getNodeRadius(d))
+            .attr('fill', d => this.getNodeColor(d))
+            .attr('stroke', '#fff')
+            .attr('stroke-width', 2)
+            .style('cursor', 'pointer')
+            .call(this.drag());
+        
+        // ラベルを描画
+        const labels = graphGroup.append('g')
+            .attr('class', 'labels')
+            .selectAll('text')
+            .data(data.nodes)
+            .join('text')
+            .text(d => d.name)
+            .attr('font-size', '12px')
+            .attr('dx', 15)
+            .attr('dy', 4)
+            .style('pointer-events', 'none')
+            .style('font-family', 'Arial, sans-serif');
+        
+        // ノードクリックイベント
+        nodes.on('click', (event, d) => {
+            event.stopPropagation();
+            this.showNodeDetail(d);
+        });
+        
+        // ホバーエフェクト
+        nodes.on('mouseover', function(event, d) {
+            d3.select(this)
+                .transition()
+                .duration(100)
+                .attr('r', d => this.getNodeRadius(d) * 1.2);
+        }.bind(this))
+        .on('mouseout', function(event, d) {
+            d3.select(this)
+                .transition()
+                .duration(100)
+                .attr('r', d => this.getNodeRadius(d));
+        }.bind(this));
+        
+        // シミュレーション更新
+        this.simulation.on('tick', () => {
+            links
+                .attr('x1', d => d.source.x)
+                .attr('y1', d => d.source.y)
+                .attr('x2', d => d.target.x)
+                .attr('y2', d => d.target.y);
+            
+            nodes
+                .attr('cx', d => Math.max(this.getNodeRadius(d), Math.min(this.width - this.getNodeRadius(d), d.x)))
+                .attr('cy', d => Math.max(this.getNodeRadius(d), Math.min(this.height - this.getNodeRadius(d), d.y)));
+            
+            labels
+                .attr('x', d => Math.max(this.getNodeRadius(d), Math.min(this.width - this.getNodeRadius(d), d.x)))
+                .attr('y', d => Math.max(this.getNodeRadius(d), Math.min(this.height - this.getNodeRadius(d), d.y)));
+        });
+        
+        // 最終的にスピナーを非表示にする（フォールバック）
+        setTimeout(() => {
+            spinner.style('display', 'none');
+            const spinnerElement = document.getElementById('loadingSpinner');
+            if (spinnerElement) {
+                spinnerElement.style.display = 'none';
+            }
+        }, 500);
+    }
+    
+    getNodeRadius(node) {
+        if (this.currentMode === 'organization') {
+            return Math.max(8, Math.min(25, 8 + node.member_count * 2));
+        } else {
+            return 10;
+        }
+    }
+    
+    getNodeColor(node) {
+        if (this.currentMode === 'organization') {
+            const colors = ['#dc3545', '#fd7e14', '#6f42c1'];
+            return colors[node.level] || '#6c757d';
+        } else {
+            return '#007bff';
+        }
+    }
+    
+    getEdgeColor(type) {
+        const colors = {
+            cooperation: '#007bff',
+            reporting: '#28a745',
+            support: '#ffc107',
+            partnership: '#dc3545',
+            dependency: '#6f42c1',
+            communication: '#17a2b8',
+            manager: '#28a745',
+            colleague: '#007bff',
+            mentor: '#fd7e14',
+            project_team: '#6f42c1',
+            collaboration: '#17a2b8'
+        };
+        return colors[type] || '#6c757d';
+    }
+    
+    getEdgeWidth(edge) {
+        return edge.strength ? edge.strength : 2;
+    }
+    
+    showNodeDetail(node) {
+        const modal = new bootstrap.Modal(document.getElementById('nodeDetailModal'));
+        const title = document.getElementById('nodeDetailTitle');
+        const body = document.getElementById('nodeDetailBody');
+        const link = document.getElementById('nodeDetailLink');
+        
+        if (this.currentMode === 'organization') {
+            title.textContent = node.name;
+            body.innerHTML = `
+                <p><strong>階層:</strong> ${['部門', '部', '課'][node.level]}</p>
+                <p><strong>フルパス:</strong> ${node.full_path}</p>
+                <p><strong>メンバー数:</strong> ${node.member_count}人</p>
+            `;
+            link.href = `/organizations/${node.id}/`;
+        } else {
+            title.textContent = node.name;
+            body.innerHTML = `
+                <p><strong>役職:</strong> ${node.position}</p>
+                <p><strong>所属:</strong> ${node.organization}</p>
+                ${node.tags.length > 0 ? `<p><strong>タグ:</strong> ${node.tags.join(', ')}</p>` : ''}
+            `;
+            link.href = `/people/${node.id}/`;
+        }
+        
+        modal.show();
+    }
+    
+    toggleLabels() {
+        const showLabels = d3.select('#showLabels').property('checked');
+        this.svg.selectAll('.labels text')
+            .style('display', showLabels ? 'block' : 'none');
+    }
+    
+    drag() {
+        return d3.drag()
+            .on('start', (event, d) => {
+                if (!event.active) this.simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            })
+            .on('drag', (event, d) => {
+                d.fx = event.x;
+                d.fy = event.y;
+            })
+            .on('end', (event, d) => {
+                if (!event.active) this.simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            });
+    }
+}
+
+// ページ読み込み完了後にグラフを初期化
+document.addEventListener('DOMContentLoaded', () => {
+    // スピナーを初期状態で確実に非表示にする
+    const spinnerElement = document.getElementById('loadingSpinner');
+    if (spinnerElement) {
+        spinnerElement.style.display = 'none';
+    }
+    
+    const graph = new RelationshipGraph();
+    
+    // ウィンドウサイズ変更に対応
+    window.addEventListener('resize', () => {
+        const container = d3.select('#graphContainer');
+        const newWidth = container.node().offsetWidth;
+        const newHeight = container.node().offsetHeight;
+        
+        if (graph.svg && (newWidth !== graph.width || newHeight !== graph.height)) {
+            graph.width = newWidth;
+            graph.height = newHeight;
+            
+            graph.svg
+                .attr('width', newWidth)
+                .attr('height', newHeight);
+            
+            if (graph.simulation) {
+                graph.simulation
+                    .force('center', d3.forceCenter(newWidth / 2, newHeight / 2))
+                    .restart();
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

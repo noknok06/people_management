@@ -1,0 +1,228 @@
+<!-- templates/people/home.html -->
+{% extends 'base.html' %}
+
+{% block title %}ダッシュボード - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">ダッシュボード</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{% url 'person_create' %}" class="btn btn-sm btn-primary">
+                <i class="bi bi-person-plus"></i> 人物追加
+            </a>
+            <a href="{% url 'organization_create' %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-plus-circle"></i> 組織追加
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 統計情報カード -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card text-white">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="card-title mb-0">{{ total_people }}</h5>
+                        <p class="card-text">登録人物数</p>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-people fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="card-title mb-0">{{ total_organizations }}</h5>
+                        <p class="card-text">組織数</p>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-building fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="card-title mb-0">{{ total_tags }}</h5>
+                        <p class="card-text">タグ数</p>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-tags fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-graph-up"></i>
+                        </h5>
+                        <p class="card-text">関連図表示</p>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{% url 'relationship_graph' %}" class="btn btn-outline-light btn-sm">
+                            表示
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 最近追加された人物 -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history"></i> 最近追加された人物
+                </h5>
+                <a href="{% url 'person_list' %}" class="btn btn-sm btn-outline-primary">
+                    すべて表示
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_people %}
+                    <div class="list-group list-group-flush">
+                        {% for person in recent_people %}
+                            <a href="{% url 'person_detail' person.pk %}" class="list-group-item list-group-item-action">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        {% if person.photo %}
+                                            <img src="{{ person.photo.url }}" alt="{{ person.name }}" class="person-photo">
+                                        {% else %}
+                                            <div class="person-photo bg-secondary d-flex align-items-center justify-content-center">
+                                                <i class="bi bi-person text-white"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">{{ person.name }}</h6>
+                                            <small class="text-muted">{{ person.created_at|date:"m/d" }}</small>
+                                        </div>
+                                        <p class="mb-1 text-muted">{{ person.position }}</p>
+                                        <small class="text-muted">{{ person.organization.name }}</small>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-person-plus fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">まだ人物が登録されていません</p>
+                        <a href="{% url 'person_create' %}" class="btn btn-primary">
+                            最初の人物を追加
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 最近追加された組織 -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-building"></i> 最近追加された組織
+                </h5>
+                <a href="{% url 'organization_list' %}" class="btn btn-sm btn-outline-primary">
+                    すべて表示
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_organizations %}
+                    <div class="list-group list-group-flush">
+                        {% for org in recent_organizations %}
+                            <a href="{% url 'organization_detail' org.pk %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1 org-level-{{ org.level }}">
+                                        {{ org.name }}
+                                        <span class="badge bg-secondary ms-2">
+                                            {{ org.get_level_display }}
+                                        </span>
+                                    </h6>
+                                    <small class="text-muted">{{ org.created_at|date:"m/d" }}</small>
+                                </div>
+                                {% if org.parent %}
+                                    <p class="mb-1 text-muted">{{ org.get_full_path }}</p>
+                                {% endif %}
+                                <small class="text-muted">
+                                    メンバー: {{ org.members.count }}人
+                                </small>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-building fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">まだ組織が登録されていません</p>
+                        <a href="{% url 'organization_create' %}" class="btn btn-primary">
+                            最初の組織を追加
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- クイックアクションセクション -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning"></i> クイックアクション
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'person_list' %}" class="btn btn-outline-primary btn-block w-100">
+                            <i class="bi bi-search"></i> 人物検索
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'organization_list' %}" class="btn btn-outline-success btn-block w-100">
+                            <i class="bi bi-diagram-3"></i> 組織構造
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'relationship_graph' %}" class="btn btn-outline-info btn-block w-100">
+                            <i class="bi bi-share"></i> 関連図
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'tag_list' %}" class="btn btn-outline-warning btn-block w-100">
+                            <i class="bi bi-tags"></i> タグ管理
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
