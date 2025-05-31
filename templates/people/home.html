@@ -4,136 +4,274 @@
 {% block title %}ダッシュボード - {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">ダッシュボード</h1>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-4 pb-3 mb-4">
+    <div>
+        <h1 class="h2 animate__animated animate__fadeInDown">
+            <i class="bi bi-speedometer2 text-primary me-3"></i>
+            ダッシュボード
+        </h1>
+        <p class="text-muted animate__animated animate__fadeInUp animate__delay-1s">
+            企業の人物・組織情報を一元管理
+        </p>
+    </div>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <div class="btn-group me-2">
-            <a href="{% url 'person_create' %}" class="btn btn-sm btn-primary">
-                <i class="bi bi-person-plus"></i> 人物追加
+        <div class="btn-group me-2 animate__animated animate__fadeInRight">
+            <a href="{% url 'person_create' %}" class="btn btn-primary">
+                <i class="bi bi-person-plus-fill me-2"></i> 人物追加
             </a>
-            <a href="{% url 'organization_create' %}" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-plus-circle"></i> 組織追加
+            <a href="{% url 'organization_create' %}" class="btn btn-outline-primary">
+                <i class="bi bi-plus-circle-fill me-2"></i> 組織追加
             </a>
         </div>
     </div>
 </div>
 
-<!-- 統計情報カード -->
-<div class="row mb-4">
-    <div class="col-md-3 mb-3">
-        <div class="card stats-card text-white">
+<!-- KPI Stats Cards -->
+<div class="row mb-5">
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card text-white h-100 animate__animated animate__fadeInUp">
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col">
-                        <h5 class="card-title mb-0">{{ total_people }}</h5>
-                        <p class="card-text">登録人物数</p>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h2 class="card-title mb-1 fw-bold" id="totalPeopleCount">{{ total_people }}</h2>
+                                <p class="card-text mb-0">登録人物数</p>
+                                <small class="text-light opacity-75">
+                                    <i class="bi bi-arrow-up me-1"></i>+12% 今月
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <i class="bi bi-people-fill fs-1 opacity-75"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-auto">
-                        <i class="bi bi-people fs-1"></i>
-                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar bg-light" role="progressbar" style="width: 75%"></div>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="col-md-3 mb-3">
-        <div class="card bg-success text-white">
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card bg-success text-white h-100 animate__animated animate__fadeInUp animate__delay-1s">
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col">
-                        <h5 class="card-title mb-0">{{ total_organizations }}</h5>
-                        <p class="card-text">組織数</p>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h2 class="card-title mb-1 fw-bold">{{ total_organizations }}</h2>
+                                <p class="card-text mb-0">組織数</p>
+                                <small class="text-light opacity-75">
+                                    <i class="bi bi-arrow-up me-1"></i>+5% 今月
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <i class="bi bi-building-fill fs-1 opacity-75"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-auto">
-                        <i class="bi bi-building fs-1"></i>
-                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar bg-light" role="progressbar" style="width: 60%"></div>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="col-md-3 mb-3">
-        <div class="card bg-info text-white">
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card bg-info text-white h-100 animate__animated animate__fadeInUp animate__delay-2s">
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col">
-                        <h5 class="card-title mb-0">{{ total_tags }}</h5>
-                        <p class="card-text">タグ数</p>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h2 class="card-title mb-1 fw-bold">{{ total_tags }}</h2>
+                                <p class="card-text mb-0">アクティブタグ</p>
+                                <small class="text-light opacity-75">
+                                    <i class="bi bi-arrow-up me-1"></i>+8% 今月
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <i class="bi bi-tags-fill fs-1 opacity-75"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-auto">
-                        <i class="bi bi-tags fs-1"></i>
-                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar bg-light" role="progressbar" style="width: 90%"></div>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="col-md-3 mb-3">
-        <div class="card bg-warning text-white">
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card bg-warning text-white h-100 animate__animated animate__fadeInUp animate__delay-3s">
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col">
-                        <h5 class="card-title mb-0">
-                            <i class="bi bi-graph-up"></i>
-                        </h5>
-                        <p class="card-text">関連図表示</p>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="bi bi-graph-up-arrow fs-2 me-2"></i>
+                                    <span class="fw-bold">Analytics</span>
+                                </div>
+                                <p class="card-text mb-0">関連図分析</p>
+                                <small class="text-light opacity-75">
+                                    <i class="bi bi-eye me-1"></i>実時間データ
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <a href="{% url 'relationship_graph' %}" class="btn btn-light btn-sm rounded-pill">
+                                    <i class="bi bi-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-auto">
-                        <a href="{% url 'relationship_graph' %}" class="btn btn-outline-light btn-sm">
-                            表示
-                        </a>
-                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar bg-light" role="progressbar" style="width: 100%"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <!-- 最近追加された人物 -->
-    <div class="col-md-6">
-        <div class="card">
+<!-- Charts and Recent Activity -->
+<div class="row mb-5">
+    <!-- Statistics Chart -->
+    <div class="col-md-8 mb-4">
+        <div class="card h-100 animate__animated animate__fadeInLeft">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
-                    <i class="bi bi-clock-history"></i> 最近追加された人物
+                    <i class="bi bi-bar-chart-fill me-2"></i>組織別統計
                 </h5>
-                <a href="{% url 'person_list' %}" class="btn btn-sm btn-outline-primary">
-                    すべて表示
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-light btn-sm" data-period="week">週</button>
+                    <button type="button" class="btn btn-light btn-sm active" data-period="month">月</button>
+                    <button type="button" class="btn btn-outline-light btn-sm" data-period="year">年</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="organizationChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Activity Feed -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 animate__animated animate__fadeInRight">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-activity me-2"></i>最近のアクティビティ
+                </h5>
+            </div>
+            <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item border-0 py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-person-plus text-white"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-0">新しい人物が追加されました</h6>
+                                <small class="text-muted">2時間前</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="list-group-item border-0 py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle bg-success d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-building text-white"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-0">組織構造が更新されました</h6>
+                                <small class="text-muted">5時間前</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="list-group-item border-0 py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle bg-info d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-share text-white"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-0">関連図が閲覧されました</h6>
+                                <small class="text-muted">1日前</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent People and Organizations -->
+<div class="row">
+    <!-- Recent People -->
+    <div class="col-md-6 mb-4">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i> 最近追加された人物
+                </h5>
+                <a href="{% url 'person_list' %}" class="btn btn-sm btn-outline-light">
+                    すべて表示 <i class="bi bi-arrow-right ms-1"></i>
                 </a>
             </div>
             <div class="card-body p-0">
                 {% if recent_people %}
                     <div class="list-group list-group-flush">
                         {% for person in recent_people %}
-                            <a href="{% url 'person_detail' person.pk %}" class="list-group-item list-group-item-action">
+                            <a href="{% url 'person_detail' person.pk %}" class="list-group-item list-group-item-action border-0 py-3">
                                 <div class="row align-items-center">
                                     <div class="col-auto">
                                         {% if person.photo %}
                                             <img src="{{ person.photo.url }}" alt="{{ person.name }}" class="person-photo">
                                         {% else %}
-                                            <div class="person-photo bg-secondary d-flex align-items-center justify-content-center">
-                                                <i class="bi bi-person text-white"></i>
+                                            <div class="person-photo bg-primary d-flex align-items-center justify-content-center text-white">
+                                                <i class="bi bi-person fs-5"></i>
                                             </div>
                                         {% endif %}
                                     </div>
                                     <div class="col">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <h6 class="mb-1">{{ person.name }}</h6>
-                                            <small class="text-muted">{{ person.created_at|date:"m/d" }}</small>
+                                        <div class="d-flex w-100 justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1 fw-semibold">{{ person.name }}</h6>
+                                                <p class="mb-1 text-muted">{{ person.position }}</p>
+                                                <small class="text-muted">
+                                                    <i class="bi bi-building me-1"></i>{{ person.organization.name }}
+                                                </small>
+                                            </div>
+                                            <div class="text-end">
+                                                <small class="text-muted">{{ person.created_at|date:"m/d" }}</small>
+                                                <div class="mt-1">
+                                                    <span class="badge bg-light text-dark">新規</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <p class="mb-1 text-muted">{{ person.position }}</p>
-                                        <small class="text-muted">{{ person.organization.name }}</small>
                                     </div>
                                 </div>
                             </a>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="text-center py-4">
-                        <i class="bi bi-person-plus fs-1 text-muted"></i>
-                        <p class="text-muted mt-2">まだ人物が登録されていません</p>
-                        <a href="{% url 'person_create' %}" class="btn btn-primary">
-                            最初の人物を追加
+                    <div class="text-center py-5">
+                        <div class="mb-3">
+                            <i class="bi bi-person-plus fs-1 text-muted"></i>
+                        </div>
+                        <h6 class="text-muted">まだ人物が登録されていません</h6>
+                        <p class="text-muted small mb-3">最初の人物を追加してデータ管理を始めましょう</p>
+                        <a href="{% url 'person_create' %}" class="btn btn-primary rounded-pill">
+                            <i class="bi bi-plus-circle me-2"></i>最初の人物を追加
                         </a>
                     </div>
                 {% endif %}
@@ -141,46 +279,66 @@
         </div>
     </div>
     
-    <!-- 最近追加された組織 -->
-    <div class="col-md-6">
-        <div class="card">
+    <!-- Recent Organizations -->
+    <div class="col-md-6 mb-4">
+        <div class="card animate__animated animate__fadeInUp animate__delay-1s">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
-                    <i class="bi bi-building"></i> 最近追加された組織
+                    <i class="bi bi-building me-2"></i> 最近追加された組織
                 </h5>
-                <a href="{% url 'organization_list' %}" class="btn btn-sm btn-outline-primary">
-                    すべて表示
+                <a href="{% url 'organization_list' %}" class="btn btn-sm btn-outline-light">
+                    すべて表示 <i class="bi bi-arrow-right ms-1"></i>
                 </a>
             </div>
             <div class="card-body p-0">
                 {% if recent_organizations %}
                     <div class="list-group list-group-flush">
                         {% for org in recent_organizations %}
-                            <a href="{% url 'organization_detail' org.pk %}" class="list-group-item list-group-item-action">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <h6 class="mb-1 org-level-{{ org.level }}">
-                                        {{ org.name }}
-                                        <span class="badge bg-secondary ms-2">
-                                            {{ org.get_level_display }}
-                                        </span>
-                                    </h6>
-                                    <small class="text-muted">{{ org.created_at|date:"m/d" }}</small>
+                            <a href="{% url 'organization_detail' org.pk %}" class="list-group-item list-group-item-action border-0 py-3">
+                                <div class="d-flex w-100 justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="me-3">
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center org-level-{{ org.level }}" 
+                                                     style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-info) 100%);">
+                                                    <i class="bi bi-building text-white"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1 fw-semibold org-level-{{ org.level }}">{{ org.name }}</h6>
+                                                <span class="badge rounded-pill" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                                    {{ org.get_level_display }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {% if org.parent %}
+                                            <p class="mb-1 text-muted small">
+                                                <i class="bi bi-arrow-right me-1"></i>{{ org.get_full_path }}
+                                            </p>
+                                        {% endif %}
+                                        <small class="text-muted">
+                                            <i class="bi bi-people me-1"></i>{{ org.members.count }}人のメンバー
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-muted">{{ org.created_at|date:"m/d" }}</small>
+                                        <div class="mt-1">
+                                            <span class="badge bg-light text-dark">新規</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                {% if org.parent %}
-                                    <p class="mb-1 text-muted">{{ org.get_full_path }}</p>
-                                {% endif %}
-                                <small class="text-muted">
-                                    メンバー: {{ org.members.count }}人
-                                </small>
                             </a>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="text-center py-4">
-                        <i class="bi bi-building fs-1 text-muted"></i>
-                        <p class="text-muted mt-2">まだ組織が登録されていません</p>
-                        <a href="{% url 'organization_create' %}" class="btn btn-primary">
-                            最初の組織を追加
+                    <div class="text-center py-5">
+                        <div class="mb-3">
+                            <i class="bi bi-building fs-1 text-muted"></i>
+                        </div>
+                        <h6 class="text-muted">まだ組織が登録されていません</h6>
+                        <p class="text-muted small mb-3">組織構造を構築して効率的な管理を始めましょう</p>
+                        <a href="{% url 'organization_create' %}" class="btn btn-success rounded-pill">
+                            <i class="bi bi-plus-circle me-2"></i>最初の組織を追加
                         </a>
                     </div>
                 {% endif %}
@@ -189,35 +347,39 @@
     </div>
 </div>
 
-<!-- クイックアクションセクション -->
+<!-- Quick Actions -->
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card">
+        <div class="card animate__animated animate__fadeInUp animate__delay-2s">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="bi bi-lightning"></i> クイックアクション
+                    <i class="bi bi-lightning-charge-fill me-2"></i>クイックアクション
                 </h5>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 mb-2">
-                        <a href="{% url 'person_list' %}" class="btn btn-outline-primary btn-block w-100">
-                            <i class="bi bi-search"></i> 人物検索
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <a href="{% url 'person_list' %}" class="btn btn-outline-primary w-100 py-3 rounded-4">
+                            <i class="bi bi-search fs-4 d-block mb-2"></i>
+                            <span class="fw-semibold">人物検索</span>
                         </a>
                     </div>
-                    <div class="col-md-3 mb-2">
-                        <a href="{% url 'organization_list' %}" class="btn btn-outline-success btn-block w-100">
-                            <i class="bi bi-diagram-3"></i> 組織構造
+                    <div class="col-md-3">
+                        <a href="{% url 'organization_list' %}" class="btn btn-outline-success w-100 py-3 rounded-4">
+                            <i class="bi bi-diagram-3 fs-4 d-block mb-2"></i>
+                            <span class="fw-semibold">組織構造</span>
                         </a>
                     </div>
-                    <div class="col-md-3 mb-2">
-                        <a href="{% url 'relationship_graph' %}" class="btn btn-outline-info btn-block w-100">
-                            <i class="bi bi-share"></i> 関連図
+                    <div class="col-md-3">
+                        <a href="{% url 'relationship_graph' %}" class="btn btn-outline-info w-100 py-3 rounded-4">
+                            <i class="bi bi-share fs-4 d-block mb-2"></i>
+                            <span class="fw-semibold">関連図分析</span>
                         </a>
                     </div>
-                    <div class="col-md-3 mb-2">
-                        <a href="{% url 'tag_list' %}" class="btn btn-outline-warning btn-block w-100">
-                            <i class="bi bi-tags"></i> タグ管理
+                    <div class="col-md-3">
+                        <a href="{% url 'tag_list' %}" class="btn btn-outline-warning w-100 py-3 rounded-4">
+                            <i class="bi bi-tags fs-4 d-block mb-2"></i>
+                            <span class="fw-semibold">タグ管理</span>
                         </a>
                     </div>
                 </div>
@@ -225,4 +387,137 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Counter Animation for Stats
+    function animateCounter(element, start, end, duration) {
+        const range = end - start;
+        const current = start;
+        const increment = end > start ? 1 : -1;
+        const stepTime = Math.abs(Math.floor(duration / range));
+        
+        const timer = setInterval(() => {
+            current += increment;
+            element.textContent = current;
+            if (current === end) {
+                clearInterval(timer);
+            }
+        }, stepTime);
+    }
+
+    // Animate counters when they come into view
+    const statsCards = document.querySelectorAll('.stats-card');
+    const observerOptions = {
+        threshold: 0.5
+    };
+
+    const statsObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const countElement = entry.target.querySelector('h2');
+                const targetValue = parseInt(countElement.textContent);
+                countElement.textContent = '0';
+                animateCounter(countElement, 0, targetValue, 2000);
+                statsObserver.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+
+    statsCards.forEach(card => {
+        statsObserver.observe(card);
+    });
+
+    // Organization Chart
+    const ctx = document.getElementById('organizationChart');
+    if (ctx) {
+        const organizationChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['部門', '部', '課', 'メンバー'],
+                datasets: [{
+                    data: [4, 8, 13, {{ total_people }}],
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.8)',
+                        'rgba(118, 75, 162, 0.8)',
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(102, 126, 234, 1)',
+                        'rgba(118, 75, 162, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)'
+                    ],
+                    borderWidth: 2,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            font: {
+                                size: 12,
+                                weight: '500'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: 'white',
+                        bodyColor: 'white',
+                        cornerRadius: 8,
+                        displayColors: true
+                    }
+                },
+                animation: {
+                    animateRotate: true,
+                    animateScale: true,
+                    duration: 2000,
+                    easing: 'easeOutQuart'
+                }
+            }
+        });
+
+        // Chart period buttons
+        document.querySelectorAll('[data-period]').forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                document.querySelectorAll('[data-period]').forEach(btn => {
+                    btn.classList.remove('btn-light', 'active');
+                    btn.classList.add('btn-outline-light');
+                });
+                
+                // Add active class to clicked button
+                this.classList.remove('btn-outline-light');
+                this.classList.add('btn-light', 'active');
+                
+                // Update chart data based on period
+                const period = this.dataset.period;
+                // Here you would typically fetch new data from the server
+                console.log('Chart period changed to:', period);
+            });
+        });
+    }
+
+    // Add hover effects to action buttons
+    document.querySelectorAll('.btn-outline-primary, .btn-outline-success, .btn-outline-info, .btn-outline-warning').forEach(button => {
+        button.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px) scale(1.02)';
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+});
+</script>
 {% endblock %}

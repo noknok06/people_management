@@ -1,4 +1,4 @@
-<!-- templates/people_management/person_form.html -->
+<!-- templates/people/person_form.html -->
 {% extends 'base.html' %}
 
 {% block title %}
@@ -10,112 +10,171 @@
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">
-        {% if object %}
-            <i class="bi bi-pencil"></i> {{ object.name }}を編集
-        {% else %}
-            <i class="bi bi-person-plus"></i> 新しい人物を追加
-        {% endif %}
-    </h1>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-4 pb-3 mb-4">
+    <div>
+        <h1 class="h2 animate__animated animate__fadeInDown">
+            {% if object %}
+                <i class="bi bi-pencil-square text-warning me-3"></i> {{ object.name }}を編集
+            {% else %}
+                <i class="bi bi-person-plus text-success me-3"></i> 新しい人物を追加
+            {% endif %}
+        </h1>
+        <p class="text-muted animate__animated animate__fadeInUp animate__delay-1s">
+            {% if object %}
+                人物情報を更新して、より正確な組織管理を実現
+            {% else %}
+                新しいメンバーの情報を登録して、チームを拡大
+            {% endif %}
+        </p>
+    </div>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{% url 'person_list' %}" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> 一覧に戻る
+        <a href="{% url 'person_list' %}" class="btn btn-outline-secondary animate__animated animate__fadeInRight">
+            <i class="bi bi-arrow-left me-2"></i> 一覧に戻る
         </a>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-8">
-        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
-            {% csrf_token %}
-            
-            <!-- 基本情報セクション -->
-            <div class="card mb-4">
+<form method="post" enctype="multipart/form-data" id="personForm" class="needs-validation" novalidate>
+    {% csrf_token %}
+    
+    <div class="row">
+        <!-- Main Form -->
+        <div class="col-lg-8">
+            <!-- Basic Information -->
+            <div class="card mb-4 animate__animated animate__fadeInUp">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="bi bi-person"></i> 基本情報
+                        <i class="bi bi-person-circle me-2"></i>基本情報
+                        <span class="badge bg-primary ms-2">必須</span>
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.name.id_for_label }}" class="form-label">
-                                氏名 <span class="text-danger">*</span>
-                            </label>
-                            {{ form.name }}
-                            {% if form.name.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.name.errors.0 }}
+                        <!-- Profile Photo Section -->
+                        <div class="col-md-4 text-center mb-4">
+                            <div class="profile-photo-section">
+                                <div class="profile-photo-container position-relative d-inline-block">
+                                    {% if object.photo %}
+                                        <img src="{{ object.photo.url }}" alt="{{ object.name }}" 
+                                             id="photoPreview" class="profile-photo">
+                                    {% else %}
+                                        <div id="photoPreview" class="profile-photo bg-light d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-person fs-1 text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div class="photo-overlay position-absolute top-50 start-50 translate-middle">
+                                        <button type="button" class="btn btn-primary rounded-circle" 
+                                                onclick="document.getElementById('{{ form.photo.id_for_label }}').click()">
+                                            <i class="bi bi-camera-fill"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                            {% endif %}
+                                
+                                <div class="mt-3">
+                                    {{ form.photo }}
+                                    {% if form.photo.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.photo.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        JPEGまたはPNG形式（最大5MB）
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.position.id_for_label }}" class="form-label">
-                                役職 <span class="text-danger">*</span>
-                            </label>
-                            {{ form.position }}
-                            {% if form.position.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.position.errors.0 }}
+                        <!-- Basic Fields -->
+                        <div class="col-md-8">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="bi bi-person me-1 text-primary"></i>
+                                        氏名 <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-primary text-white">
+                                            <i class="bi bi-person-fill"></i>
+                                        </span>
+                                        {{ form.name }}
+                                    </div>
+                                    {% if form.name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.name.errors.0 }}
+                                        </div>
+                                    {% endif %}
                                 </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.organization.id_for_label }}" class="form-label">
-                                所属組織 <span class="text-danger">*</span>
-                            </label>
-                            {{ form.organization }}
-                            {% if form.organization.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.organization.errors.0 }}
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.position.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="bi bi-award me-1 text-success"></i>
+                                        役職 <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-success text-white">
+                                            <i class="bi bi-award-fill"></i>
+                                        </span>
+                                        {{ form.position }}
+                                    </div>
+                                    {% if form.position.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.position.errors.0 }}
+                                        </div>
+                                    {% endif %}
                                 </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.photo.id_for_label }}" class="form-label">
-                                顔写真
-                            </label>
-                            {{ form.photo }}
-                            {% if object.photo %}
-                                <div class="mt-2">
-                                    <small class="text-muted">現在の写真:</small><br>
-                                    <img src="{{ object.photo.url }}" alt="{{ object.name }}" 
-                                         class="rounded" style="width: 80px; height: 80px; object-fit: cover;">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.organization.id_for_label }}" class="form-label fw-semibold">
+                                    <i class="bi bi-building me-1 text-info"></i>
+                                    所属組織 <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-info text-white">
+                                        <i class="bi bi-building-fill"></i>
+                                    </span>
+                                    {{ form.organization }}
                                 </div>
-                            {% endif %}
-                            {% if form.photo.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.photo.errors.0 }}
+                                {% if form.organization.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.organization.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i class="bi bi-lightbulb me-1"></i>
+                                    最も具体的な組織（課など）を選択してください
                                 </div>
-                            {% endif %}
-                            <div class="form-text">
-                                JPEGまたはPNG形式のファイルをアップロードしてください。
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- 連絡先情報セクション -->
-            <div class="card mb-4">
+            <!-- Contact Information -->
+            <div class="card mb-4 animate__animated animate__fadeInUp animate__delay-1s">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="bi bi-telephone"></i> 連絡先情報
+                        <i class="bi bi-telephone-fill me-2"></i>連絡先情報
+                        <span class="badge bg-secondary ms-2">オプション</span>
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="{{ form.email.id_for_label }}" class="form-label">
+                            <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">
+                                <i class="bi bi-envelope me-1 text-primary"></i>
                                 メールアドレス
                             </label>
-                            {{ form.email }}
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary text-white">
+                                    <i class="bi bi-envelope-fill"></i>
+                                </span>
+                                {{ form.email }}
+                                <button class="btn btn-outline-secondary" type="button" id="testEmailBtn">
+                                    <i class="bi bi-send"></i>
+                                </button>
+                            </div>
                             {% if form.email.errors %}
                                 <div class="invalid-feedback d-block">
                                     {{ form.email.errors.0 }}
@@ -124,10 +183,19 @@
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label for="{{ form.phone.id_for_label }}" class="form-label">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label fw-semibold">
+                                <i class="bi bi-telephone me-1 text-success"></i>
                                 電話番号
                             </label>
-                            {{ form.phone }}
+                            <div class="input-group">
+                                <span class="input-group-text bg-success text-white">
+                                    <i class="bi bi-telephone-fill"></i>
+                                </span>
+                                {{ form.phone }}
+                                <button class="btn btn-outline-secondary" type="button" id="formatPhoneBtn">
+                                    <i class="bi bi-123"></i>
+                                </button>
+                            </div>
                             {% if form.phone.errors %}
                                 <div class="invalid-feedback d-block">
                                     {{ form.phone.errors.0 }}
@@ -138,221 +206,721 @@
                 </div>
             </div>
             
-            <!-- 詳細情報セクション -->
-            <div class="card mb-4">
+            <!-- Detailed Information -->
+            <div class="card mb-4 animate__animated animate__fadeInUp animate__delay-2s">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="bi bi-journal-text"></i> 詳細情報
+                        <i class="bi bi-journal-text me-2"></i>詳細情報
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label for="{{ form.personality.id_for_label }}" class="form-label">
+                    <div class="mb-4">
+                        <label for="{{ form.personality.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-heart me-1 text-danger"></i>
                             性格・特徴
                         </label>
-                        {{ form.personality }}
+                        <div class="position-relative">
+                            {{ form.personality }}
+                            <div class="character-counter position-absolute bottom-0 end-0 me-2 mb-2">
+                                <small class="text-muted">
+                                    <span id="personalityCounter">0</span>/500文字
+                                </small>
+                            </div>
+                        </div>
                         {% if form.personality.errors %}
                             <div class="invalid-feedback d-block">
                                 {{ form.personality.errors.0 }}
                             </div>
                         {% endif %}
                         <div class="form-text">
-                            この人物の性格や特徴について記載してください。
+                            <i class="bi bi-lightbulb me-1"></i>
+                            この人物の性格、働き方、得意分野などを記載してください
                         </div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="{{ form.notes.id_for_label }}" class="form-label">
-                            備考
+                        <label for="{{ form.notes.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-sticky me-1 text-warning"></i>
+                            備考・メモ
                         </label>
-                        {{ form.notes }}
+                        <div class="position-relative">
+                            {{ form.notes }}
+                            <div class="character-counter position-absolute bottom-0 end-0 me-2 mb-2">
+                                <small class="text-muted">
+                                    <span id="notesCounter">0</span>/1000文字
+                                </small>
+                            </div>
+                        </div>
                         {% if form.notes.errors %}
                             <div class="invalid-feedback d-block">
                                 {{ form.notes.errors.0 }}
                             </div>
                         {% endif %}
                         <div class="form-text">
-                            その他の重要な情報があれば記載してください。
+                            <i class="bi bi-lightbulb me-1"></i>
+                            その他の重要な情報や特記事項があれば記載してください
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- タグセクション -->
-            <div class="card mb-4">
-                <div class="card-header">
+            <!-- Tags -->
+            <div class="card mb-4 animate__animated animate__fadeInUp animate__delay-3s">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
-                        <i class="bi bi-tags"></i> タグ
+                        <i class="bi bi-tags-fill me-2"></i>タグ
                     </h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createTagModal">
+                        <i class="bi bi-plus-circle me-1"></i>新規作成
+                    </button>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">関連タグ</label>
-                        <div class="row">
+                    <div class="tags-selection-area">
+                        <div class="row" id="tagsContainer">
                             {% for choice in form.tags %}
-                                <div class="col-md-4 col-sm-6 mb-2">
-                                    <div class="form-check">
-                                        {{ choice.tag }}
-                                        <label class="form-check-label" for="{{ choice.id_for_label }}">
-                                            {{ choice.choice_label }}
+                                <div class="col-md-4 col-sm-6 mb-3">
+                                    <div class="tag-option">
+                                        <input type="checkbox" class="btn-check tag-checkbox" 
+                                               id="{{ choice.id_for_label }}" name="{{ choice.name }}" 
+                                               value="{{ choice.choice_value }}" 
+                                               {% if choice.tag.checked %}checked{% endif %}>
+                                        <label class="btn btn-outline-primary w-100 tag-label" 
+                                               for="{{ choice.id_for_label }}"
+                                               data-color="{{ choice.choice_label.instance.color|default:'#007bff' }}">
+                                            <div class="d-flex align-items-center">
+                                                <div class="tag-color-indicator me-2"></div>
+                                                <span class="flex-grow-1">{{ choice.choice_label }}</span>
+                                                <i class="bi bi-check-circle-fill tag-check-icon"></i>
+                                            </div>
                                         </label>
                                     </div>
                                 </div>
                             {% endfor %}
                         </div>
-                        {% if form.tags.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.tags.errors.0 }}
-                            </div>
-                        {% endif %}
-                        <div class="form-text">
-                            この人物に関連するタグを選択してください。
+                    </div>
+                    
+                    {% if form.tags.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.tags.errors.0 }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="form-text mt-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        選択したタグは検索・フィルタリングに使用されます
+                    </div>
+                    
+                    <!-- Selected Tags Preview -->
+                    <div class="selected-tags-preview mt-3" id="selectedTagsPreview">
+                        <h6 class="text-muted small mb-2">選択中のタグ:</h6>
+                        <div id="selectedTagsList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Form Progress -->
+            <div class="card mb-4 animate__animated animate__fadeInRight">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-list-check me-2"></i>入力進捗
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar bg-success" id="formProgress" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    
+                    <div class="progress-checklist">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="progressName" disabled>
+                            <label class="form-check-label text-muted" for="progressName">
+                                氏名
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="progressPosition" disabled>
+                            <label class="form-check-label text-muted" for="progressPosition">
+                                役職
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="progressOrg" disabled>
+                            <label class="form-check-label text-muted" for="progressOrg">
+                                所属組織
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="progressContact" disabled>
+                            <label class="form-check-label text-muted" for="progressContact">
+                                連絡先
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="progressDetails" disabled>
+                            <label class="form-check-label text-muted" for="progressDetails">
+                                詳細情報
+                            </label>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- 送信ボタン -->
-            <div class="card">
+            <!-- Help & Tips -->
+            <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-1s">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>入力のヒント
+                    </h6>
+                </div>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <button type="submit" class="btn btn-primary">
-                            {% if object %}
-                                <i class="bi bi-check-circle"></i> 更新
-                            {% else %}
-                                <i class="bi bi-plus-circle"></i> 追加
-                            {% endif %}
-                        </button>
+                    <div class="tip-item mb-3">
+                        <div class="d-flex">
+                            <i class="bi bi-person-fill text-primary me-2"></i>
+                            <div>
+                                <strong class="small">氏名</strong>
+                                <p class="small text-muted mb-0">フルネームで正確に入力してください</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tip-item mb-3">
+                        <div class="d-flex">
+                            <i class="bi bi-building text-info me-2"></i>
+                            <div>
+                                <strong class="small">所属組織</strong>
+                                <p class="small text-muted mb-0">最も具体的な部署を選択してください</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tip-item mb-3">
+                        <div class="d-flex">
+                            <i class="bi bi-camera text-warning me-2"></i>
+                            <div>
+                                <strong class="small">写真</strong>
+                                <p class="small text-muted mb-0">顔がはっきり見える写真が推奨です</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tip-item">
+                        <div class="d-flex">
+                            <i class="bi bi-tags text-success me-2"></i>
+                            <div>
+                                <strong class="small">タグ</strong>
+                                <p class="small text-muted mb-0">検索・分析で活用されます</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Preview Card (Edit Mode Only) -->
+            {% if object %}
+                <div class="card animate__animated animate__fadeInRight animate__delay-2s">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-eye me-2"></i>現在の情報
+                        </h6>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if object.photo %}
+                            <img src="{{ object.photo.url }}" alt="{{ object.name }}" 
+                                 class="rounded-circle mb-3" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3"
+                                 style="width: 80px; height: 80px;">
+                                <i class="bi bi-person fs-2 text-muted"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <h6 class="fw-bold">{{ object.name }}</h6>
+                        <p class="text-muted mb-2">{{ object.position }}</p>
+                        <p class="small text-muted">{{ object.organization.get_full_path }}</p>
+                        
+                        {% if object.tags.all %}
+                            <div class="mt-2">
+                                {% for tag in object.tags.all|slice:":3" %}
+                                    <span class="badge me-1" style="background-color: {{ tag.color }};">
+                                        {{ tag.name }}
+                                    </span>
+                                {% endfor %}
+                                {% if object.tags.count > 3 %}
+                                    <small class="text-muted">+{{ object.tags.count|add:"-3" }}</small>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Form Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card animate__animated animate__fadeInUp animate__delay-4s">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <button type="submit" class="btn btn-primary btn-lg me-3" id="submitBtn">
+                                {% if object %}
+                                    <i class="bi bi-check-circle me-2"></i>更新
+                                {% else %}
+                                    <i class="bi bi-plus-circle me-2"></i>追加
+                                {% endif %}
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg me-3" id="draftBtn">
+                                <i class="bi bi-save me-2"></i>下書き保存
+                            </button>
+                        </div>
                         
                         <div>
                             <a href="{% url 'person_list' %}" class="btn btn-outline-secondary me-2">
-                                <i class="bi bi-x-circle"></i> キャンセル
+                                <i class="bi bi-x-circle me-2"></i>キャンセル
                             </a>
                             {% if object %}
                                 <a href="{% url 'person_detail' object.pk %}" class="btn btn-outline-info">
-                                    <i class="bi bi-eye"></i> 詳細表示
+                                    <i class="bi bi-eye me-2"></i>詳細表示
                                 </a>
                             {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
-        </form>
+        </div>
     </div>
-    
-    <!-- サイドバー -->
-    <div class="col-md-4">
-        <!-- ヘルプカード -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="bi bi-question-circle"></i> 入力のヒント
-                </h6>
+</form>
+
+<!-- Create Tag Modal -->
+<div class="modal fade" id="createTagModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle me-2"></i>新しいタグを作成
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="card-body">
-                <ul class="list-unstyled mb-0">
-                    <li class="mb-2">
-                        <strong>氏名:</strong> フルネームで入力してください
-                    </li>
-                    <li class="mb-2">
-                        <strong>役職:</strong> 正式な役職名を入力してください
-                    </li>
-                    <li class="mb-2">
-                        <strong>所属組織:</strong> 最も具体的な組織を選択してください
-                    </li>
-                    <li class="mb-2">
-                        <strong>写真:</strong> 顔がはっきり見える写真が推奨です
-                    </li>
-                    <li class="mb-0">
-                        <strong>タグ:</strong> 後で検索・フィルタに使用されます
-                    </li>
-                </ul>
+            <div class="modal-body">
+                <form id="createTagForm">
+                    <div class="mb-3">
+                        <label for="newTagName" class="form-label">タグ名</label>
+                        <input type="text" class="form-control" id="newTagName" placeholder="タグ名を入力してください">
+                    </div>
+                    <div class="mb-3">
+                        <label for="newTagColor" class="form-label">カラー</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="color" class="form-control form-control-color" id="newTagColor" value="#007bff">
+                            <div class="color-presets d-flex gap-1">
+                                <button type="button" class="btn btn-sm color-preset" data-color="#007bff" style="background-color: #007bff;"></button>
+                                <button type="button" class="btn btn-sm color-preset" data-color="#28a745" style="background-color: #28a745;"></button>
+                                <button type="button" class="btn btn-sm color-preset" data-color="#dc3545" style="background-color: #dc3545;"></button>
+                                <button type="button" class="btn btn-sm color-preset" data-color="#ffc107" style="background-color: #ffc107;"></button>
+                                <button type="button" class="btn btn-sm color-preset" data-color="#6f42c1" style="background-color: #6f42c1;"></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newTagDescription" class="form-label">説明</label>
+                        <textarea class="form-control" id="newTagDescription" rows="2" placeholder="タグの説明を入力してください"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary" id="saveNewTag">
+                    <i class="bi bi-plus-circle me-2"></i>作成
+                </button>
             </div>
         </div>
-        
-        <!-- プレビューカード（編集時のみ） -->
-        {% if object %}
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        <i class="bi bi-eye"></i> 現在の情報
-                    </h6>
-                </div>
-                <div class="card-body text-center">
-                    {% if object.photo %}
-                        <img src="{{ object.photo.url }}" alt="{{ object.name }}" 
-                             class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
-                    {% else %}
-                        <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3"
-                             style="width: 100px; height: 100px;">
-                            <i class="bi bi-person fs-2 text-muted"></i>
-                        </div>
-                    {% endif %}
-                    
-                    <h6>{{ object.name }}</h6>
-                    <p class="text-muted mb-2">{{ object.position }}</p>
-                    <p class="small text-muted">{{ object.organization.get_full_path }}</p>
-                    
-                    {% if object.tags.all %}
-                        <div class="mt-2">
-                            {% for tag in object.tags.all %}
-                                <span class="tag-badge" style="background-color: {{ tag.color }};">
-                                    {{ tag.name }}
-                                </span>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        {% endif %}
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// フォームバリデーション
-(function() {
-    'use strict';
-    window.addEventListener('load', function() {
-        var forms = document.getElementsByClassName('needs-validation');
-        var validation = Array.prototype.filter.call(forms, function(form) {
-            form.addEventListener('submit', function(event) {
-                if (form.checkValidity() === false) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const form = document.getElementById('personForm');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Photo preview functionality
+    const photoInput = document.getElementById('{{ form.photo.id_for_label }}');
+    const photoPreview = document.getElementById('photoPreview');
+    
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if (photoPreview.tagName === 'IMG') {
+                        photoPreview.src = e.target.result;
+                    } else {
+                        photoPreview.innerHTML = `<img src="${e.target.result}" alt="Preview" class="profile-photo">`;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
         });
-    }, false);
-})();
-
-// 写真プレビュー
-document.getElementById('{{ form.photo.id_for_label }}').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            // 既存のプレビューを削除
-            const existingPreview = document.getElementById('photo-preview');
-            if (existingPreview) {
-                existingPreview.remove();
+    }
+    
+    // Character counters
+    const personalityField = document.getElementById('{{ form.personality.id_for_label }}');
+    const notesField = document.getElementById('{{ form.notes.id_for_label }}');
+    
+    function updateCounter(field, counterId, maxLength) {
+        const counter = document.getElementById(counterId);
+        if (field && counter) {
+            const updateCount = () => {
+                const length = field.value.length;
+                counter.textContent = length;
+                counter.parentElement.classList.toggle('text-danger', length > maxLength);
+            };
+            
+            field.addEventListener('input', updateCount);
+            updateCount();
+        }
+    }
+    
+    updateCounter(personalityField, 'personalityCounter', 500);
+    updateCounter(notesField, 'notesCounter', 1000);
+    
+    // Form progress tracking
+    function updateFormProgress() {
+        const requiredFields = [
+            { field: '{{ form.name.id_for_label }}', checkbox: 'progressName' },
+            { field: '{{ form.position.id_for_label }}', checkbox: 'progressPosition' },
+            { field: '{{ form.organization.id_for_label }}', checkbox: 'progressOrg' }
+        ];
+        
+        const optionalFields = [
+            { fields: ['{{ form.email.id_for_label }}', '{{ form.phone.id_for_label }}'], checkbox: 'progressContact' },
+            { fields: ['{{ form.personality.id_for_label }}', '{{ form.notes.id_for_label }}'], checkbox: 'progressDetails' }
+        ];
+        
+        let completedRequired = 0;
+        let completedOptional = 0;
+        
+        // Check required fields
+        requiredFields.forEach(item => {
+            const field = document.getElementById(item.field);
+            const checkbox = document.getElementById(item.checkbox);
+            const isCompleted = field && field.value.trim() !== '';
+            
+            if (checkbox) {
+                checkbox.checked = isCompleted;
             }
             
-            // 新しいプレビューを追加
-            const preview = document.createElement('div');
-            preview.id = 'photo-preview';
-            preview.className = 'mt-2';
-            preview.innerHTML = `
-                <small class="text-muted">プレビュー:</small><br>
-                <img src="${e.target.result}" alt="プレビュー" 
-                     class="rounded" style="width: 80px; height: 80px; object-fit: cover;">
-            `;
-            e.target.parentElement.appendChild(preview);
-        };
-        reader.readAsDataURL(file);
+            if (isCompleted) completedRequired++;
+        });
+        
+        // Check optional fields
+        optionalFields.forEach(item => {
+            const checkbox = document.getElementById(item.checkbox);
+            const isCompleted = item.fields.some(fieldId => {
+                const field = document.getElementById(fieldId);
+                return field && field.value.trim() !== '';
+            });
+            
+            if (checkbox) {
+                checkbox.checked = isCompleted;
+            }
+            
+            if (isCompleted) completedOptional++;
+        });
+        
+        // Update progress bar
+        const totalProgress = ((completedRequired * 2 + completedOptional) / (requiredFields.length * 2 + optionalFields.length)) * 100;
+        const progressBar = document.getElementById('formProgress');
+        if (progressBar) {
+            progressBar.style.width = totalProgress + '%';
+            progressBar.setAttribute('aria-valuenow', totalProgress);
+        }
+        
+        // Enable/disable submit button
+        const canSubmit = completedRequired === requiredFields.length;
+        submitBtn.disabled = !canSubmit;
+        
+        if (canSubmit) {
+            submitBtn.classList.remove('btn-secondary');
+            submitBtn.classList.add('btn-primary');
+        } else {
+            submitBtn.classList.remove('btn-primary');
+            submitBtn.classList.add('btn-secondary');
+        }
     }
+    
+    // Monitor all form fields for progress
+    const allFields = form.querySelectorAll('input, select, textarea');
+    allFields.forEach(field => {
+        field.addEventListener('input', updateFormProgress);
+        field.addEventListener('change', updateFormProgress);
+    });
+    
+    updateFormProgress();
+    
+    // Tag selection functionality
+    const tagCheckboxes = document.querySelectorAll('.tag-checkbox');
+    const selectedTagsList = document.getElementById('selectedTagsList');
+    
+    function updateSelectedTags() {
+        const selectedTags = Array.from(tagCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => {
+                const label = document.querySelector(`label[for="${cb.id}"]`);
+                const color = label.dataset.color || '#007bff';
+                const name = label.textContent.trim();
+                return { name, color };
+            });
+        
+        selectedTagsList.innerHTML = selectedTags.length > 0 
+            ? selectedTags.map(tag => 
+                `<span class="badge me-1 mb-1" style="background-color: ${tag.color};">${tag.name}</span>`
+              ).join('')
+            : '<span class="text-muted small">タグが選択されていません</span>';
+    }
+    
+    tagCheckboxes.forEach(checkbox => {
+        const label = document.querySelector(`label[for="${checkbox.id}"]`);
+        const colorIndicator = label.querySelector('.tag-color-indicator');
+        
+        // Set color indicator
+        if (colorIndicator) {
+            colorIndicator.style.backgroundColor = label.dataset.color || '#007bff';
+            colorIndicator.style.width = '12px';
+            colorIndicator.style.height = '12px';
+            colorIndicator.style.borderRadius = '50%';
+        }
+        
+        checkbox.addEventListener('change', function() {
+            updateSelectedTags();
+            updateFormProgress();
+            
+            // Add visual feedback
+            if (this.checked) {
+                label.classList.add('animate__animated', 'animate__pulse');
+                setTimeout(() => {
+                    label.classList.remove('animate__animated', 'animate__pulse');
+                }, 600);
+            }
+        });
+    });
+    
+    updateSelectedTags();
+    
+    // Create new tag functionality
+    const createTagModal = document.getElementById('createTagModal');
+    const saveNewTagBtn = document.getElementById('saveNewTag');
+    const colorPresets = document.querySelectorAll('.color-preset');
+    
+    colorPresets.forEach(preset => {
+        preset.addEventListener('click', function() {
+            const color = this.dataset.color;
+            document.getElementById('newTagColor').value = color;
+        });
+    });
+    
+    saveNewTagBtn.addEventListener('click', function() {
+        const name = document.getElementById('newTagName').value.trim();
+        const color = document.getElementById('newTagColor').value;
+        const description = document.getElementById('newTagDescription').value.trim();
+        
+        if (name) {
+            // In a real application, you would send this to the server
+            console.log('Creating new tag:', { name, color, description });
+            
+            // For demo purposes, add it to the UI
+            addNewTagToForm(name, color);
+            
+            // Close modal and reset form
+            bootstrap.Modal.getInstance(createTagModal).hide();
+            document.getElementById('createTagForm').reset();
+            document.getElementById('newTagColor').value = '#007bff';
+        }
+    });
+    
+    function addNewTagToForm(name, color) {
+        const tagsContainer = document.getElementById('tagsContainer');
+        const newTagId = 'new_tag_' + Date.now();
+        
+        const newTagHTML = `
+            <div class="col-md-4 col-sm-6 mb-3">
+                <div class="tag-option">
+                    <input type="checkbox" class="btn-check tag-checkbox" 
+                           id="${newTagId}" name="tags" value="">
+                    <label class="btn btn-outline-primary w-100 tag-label" 
+                           for="${newTagId}"
+                           data-color="${color}">
+                        <div class="d-flex align-items-center">
+                            <div class="tag-color-indicator me-2" style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%;"></div>
+                            <span class="flex-grow-1">${name}</span>
+                            <i class="bi bi-check-circle-fill tag-check-icon"></i>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        `;
+        
+        tagsContainer.insertAdjacentHTML('beforeend', newTagHTML);
+        
+        // Add event listeners to the new tag
+        const newCheckbox = document.getElementById(newTagId);
+        newCheckbox.addEventListener('change', function() {
+            updateSelectedTags();
+            updateFormProgress();
+        });
+    }
+    
+    // Form submission with loading state
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>処理中...';
+        
+        // Simulate form submission delay
+        setTimeout(() => {
+            form.submit();
+        }, 1000);
+    });
+    
+    // Draft save functionality
+    document.getElementById('draftBtn').addEventListener('click', function() {
+        const formData = new FormData(form);
+        
+        // In a real application, you would save this as draft
+        console.log('Saving draft...');
+        
+        // Show feedback
+        this.innerHTML = '<i class="bi bi-check me-2"></i>保存済み';
+        this.classList.remove('btn-outline-secondary');
+        this.classList.add('btn-success');
+        
+        setTimeout(() => {
+            this.innerHTML = '<i class="bi bi-save me-2"></i>下書き保存';
+            this.classList.remove('btn-success');
+            this.classList.add('btn-outline-secondary');
+        }, 2000);
+    });
+    
+    // Phone number formatting
+    document.getElementById('formatPhoneBtn').addEventListener('click', function() {
+        const phoneField = document.getElementById('{{ form.phone.id_for_label }}');
+        if (phoneField) {
+            let phone = phoneField.value.replace(/\D/g, '');
+            if (phone.length === 10) {
+                phone = phone.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3');
+            } else if (phone.length === 11) {
+                phone = phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+            }
+            phoneField.value = phone;
+        }
+    });
+    
+    // Email test functionality
+    document.getElementById('testEmailBtn').addEventListener('click', function() {
+        const emailField = document.getElementById('{{ form.email.id_for_label }}');
+        if (emailField && emailField.value) {
+            window.open(`mailto:${emailField.value}?subject=テストメール&body=これはテストメールです。`);
+        }
+    });
 });
 </script>
+
+<style>
+.profile-photo-container {
+    position: relative;
+    display: inline-block;
+}
+
+.profile-photo {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 4px solid rgba(102, 126, 234, 0.2);
+    transition: all 0.3s ease;
+}
+
+.profile-photo-container:hover .profile-photo {
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.photo-overlay {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.profile-photo-container:hover .photo-overlay {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.tag-option .btn-check:checked + .btn {
+    background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-info) 100%);
+    border-color: var(--bs-primary);
+    color: white;
+}
+
+.tag-check-icon {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.tag-option .btn-check:checked + .btn .tag-check-icon {
+    opacity: 1;
+}
+
+.character-counter {
+    font-size: 0.75rem;
+    pointer-events: none;
+}
+
+.form-control:focus {
+    border-color: rgba(102, 126, 234, 0.5);
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.tip-item {
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    background-color: rgba(102, 126, 234, 0.05);
+    transition: background-color 0.3s ease;
+}
+
+.tip-item:hover {
+    background-color: rgba(102, 126, 234, 0.1);
+}
+
+.color-preset {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.color-preset:hover {
+    transform: scale(1.1);
+}
+
+.input-group-text {
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.progress-checklist .form-check-input:checked {
+    background-color: var(--bs-success);
+    border-color: var(--bs-success);
+}
+
+#personForm input[type="file"] {
+    display: none;
+}
+</style>
 {% endblock %}

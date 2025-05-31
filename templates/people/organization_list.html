@@ -1,113 +1,238 @@
-<!-- templates/people_management/organization_list.html -->
+<!-- templates/people/organization_list.html -->
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block title %}組織一覧 - {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">組織管理</h1>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-4 pb-3 mb-4">
+    <div>
+        <h1 class="h2 animate__animated animate__fadeInDown">
+            <i class="bi bi-diagram-3-fill text-primary me-3"></i>
+            組織管理
+        </h1>
+        <p class="text-muted animate__animated animate__fadeInUp animate__delay-1s">
+            企業の組織構造を視覚的に管理・分析
+        </p>
+    </div>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{% url 'organization_create' %}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> 新しい組織を追加
-        </a>
+        <div class="btn-group me-2 animate__animated animate__fadeInRight">
+            <a href="{% url 'organization_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle-fill me-2"></i> 新しい組織を追加
+            </a>
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#orgStructureModal">
+                <i class="bi bi-diagram-2 me-2"></i> 構造図表示
+            </button>
+        </div>
     </div>
 </div>
 
-<!-- 組織統計 -->
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card bg-danger text-white">
+<!-- Organization KPI Dashboard -->
+<div class="row mb-5">
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card bg-danger text-white h-100 animate__animated animate__fadeInUp">
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col">
-                        <h5 class="card-title mb-0">{{ departments.count }}</h5>
-                        <p class="card-text">部門</p>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h2 class="card-title mb-1 fw-bold">{{ departments.count }}</h2>
+                                <p class="card-text mb-0">部門</p>
+                                <small class="text-light opacity-75">
+                                    <i class="bi bi-building-fill me-1"></i>最高レベル
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <i class="bi bi-building-fill fs-1 opacity-75"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-auto">
-                        <i class="bi bi-building fs-1"></i>
-                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar bg-light" role="progressbar" style="width: {{ departments.count|mul:25 }}%"></div>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="col-md-4">
-        <div class="card bg-warning text-white">
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card bg-warning text-white h-100 animate__animated animate__fadeInUp animate__delay-1s">
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col">
-                        <h5 class="card-title mb-0">{{ divisions.count }}</h5>
-                        <p class="card-text">部</p>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h2 class="card-title mb-1 fw-bold">{{ divisions.count }}</h2>
+                                <p class="card-text mb-0">部</p>
+                                <small class="text-light opacity-75">
+                                    <i class="bi bi-diagram-2 me-1"></i>中間レベル
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <i class="bi bi-diagram-2-fill fs-1 opacity-75"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-auto">
-                        <i class="bi bi-diagram-2 fs-1"></i>
-                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar bg-light" role="progressbar" style="width: {{ divisions.count|mul:12 }}%"></div>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="col-md-4">
-        <div class="card bg-info text-white">
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card bg-info text-white h-100 animate__animated animate__fadeInUp animate__delay-2s">
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col">
-                        <h5 class="card-title mb-0">{{ sections.count }}</h5>
-                        <p class="card-text">課</p>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h2 class="card-title mb-1 fw-bold">{{ sections.count }}</h2>
+                                <p class="card-text mb-0">課</p>
+                                <small class="text-light opacity-75">
+                                    <i class="bi bi-diagram-3 me-1"></i>実行レベル
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <i class="bi bi-diagram-3-fill fs-1 opacity-75"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-auto">
-                        <i class="bi bi-diagram-3 fs-1"></i>
+                </div>
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar bg-light" role="progressbar" style="width: {{ sections.count|mul:7 }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card bg-success text-white h-100 animate__animated animate__fadeInUp animate__delay-3s">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h2 class="card-title mb-1 fw-bold" id="totalMembers">0</h2>
+                                <p class="card-text mb-0">総メンバー数</p>
+                                <small class="text-light opacity-75">
+                                    <i class="bi bi-people me-1"></i>全組織合計
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <i class="bi bi-people-fill fs-1 opacity-75"></i>
+                            </div>
+                        </div>
                     </div>
+                </div>
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar bg-light" role="progressbar" style="width: 85%"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 部門一覧 -->
+<!-- Department Level Organizations -->
 {% if departments %}
-    <div class="card mb-4">
-        <div class="card-header">
+    <div class="card mb-5 animate__animated animate__fadeInUp">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0 org-level-0">
-                <i class="bi bi-building"></i> 部門一覧
+                <i class="bi bi-building-fill me-2"></i>部門一覧
+                <span class="badge bg-danger ms-2">{{ departments.count }}</span>
             </h5>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-light" data-view="card" data-level="departments">
+                    <i class="bi bi-grid-3x2"></i>
+                </button>
+                <button type="button" class="btn btn-light active" data-view="grid" data-level="departments">
+                    <i class="bi bi-grid"></i>
+                </button>
+            </div>
         </div>
         <div class="card-body">
-            <div class="row">
+            <div class="row" id="departmentsContainer">
                 {% for department in departments %}
-                    <div class="col-md-6 col-lg-4 mb-3">
-                        <div class="card border-danger">
-                            <div class="card-body">
-                                <h6 class="card-title org-level-0">
-                                    <a href="{% url 'organization_detail' department.pk %}">
-                                        {{ department.name }}
-                                    </a>
-                                </h6>
-                                <p class="card-text">
-                                    <small class="text-muted">
-                                        <i class="bi bi-people"></i> {{ department.member_count }}人
-                                        <br>
-                                        <i class="bi bi-diagram-2"></i> {{ department.children.count }}部
-                                    </small>
-                                </p>
+                    <div class="col-md-6 col-lg-4 mb-4 organization-item animate__animated animate__fadeInUp" 
+                         style="animation-delay: {{ forloop.counter0|add:1 }}00ms;">
+                        <div class="card h-100 border-danger border-2 organization-card">
+                            <div class="card-body position-relative">
+                                <!-- Status Indicator -->
+                                <div class="position-absolute top-0 end-0 m-3">
+                                    <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center text-white"
+                                         style="width: 30px; height: 30px;">
+                                        <i class="bi bi-building-fill"></i>
+                                    </div>
+                                </div>
+                                
+                                <!-- Organization Header -->
+                                <div class="mb-3">
+                                    <h6 class="card-title org-level-0 mb-2 fw-bold">
+                                        <a href="{% url 'organization_detail' department.pk %}" class="text-decoration-none">
+                                            {{ department.name }}
+                                        </a>
+                                    </h6>
+                                    <span class="badge rounded-pill" style="background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);">
+                                        {{ department.get_level_display }}
+                                    </span>
+                                </div>
+                                
+                                <!-- Statistics -->
+                                <div class="row text-center mb-3">
+                                    <div class="col-4">
+                                        <div class="border-end">
+                                            <h5 class="text-primary mb-0">{{ department.member_count }}</h5>
+                                            <small class="text-muted">メンバー</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="border-end">
+                                            <h5 class="text-success mb-0">{{ department.children.count }}</h5>
+                                            <small class="text-muted">部</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <h5 class="text-warning mb-0">{{ department.children.count|mul:2 }}</h5>
+                                        <small class="text-muted">課</small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Description -->
                                 {% if department.description %}
-                                    <p class="card-text">
-                                        <small>{{ department.description|truncatechars:50 }}</small>
+                                    <p class="card-text text-muted small mb-3">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        {{ department.description|truncatechars:80 }}
                                     </p>
                                 {% endif %}
+                                
+                                <!-- Actions -->
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted">
+                                        <i class="bi bi-calendar-plus me-1"></i>
                                         {{ department.created_at|date:"Y/m/d" }}
                                     </small>
                                     <div class="btn-group">
                                         <a href="{% url 'organization_detail' department.pk %}" 
                                            class="btn btn-sm btn-outline-primary">
-                                            詳細
+                                            <i class="bi bi-eye"></i>
                                         </a>
                                         <a href="{% url 'person_list' %}?organization={{ department.id }}" 
                                            class="btn btn-sm btn-outline-success">
-                                            メンバー
+                                            <i class="bi bi-people"></i>
                                         </a>
+                                        <button class="btn btn-sm btn-outline-info" type="button" 
+                                                data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="{% url 'organization_detail' department.pk %}">
+                                                <i class="bi bi-eye me-2"></i>詳細表示
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="{% url 'relationship_graph' %}?organization={{ department.id }}">
+                                                <i class="bi bi-share me-2"></i>関連図表示
+                                            </a></li>
+                                        </ul>
                                     </div>
                                 </div>
                             </div>
@@ -119,50 +244,91 @@
     </div>
 {% endif %}
 
-<!-- 部一覧 -->
+<!-- Division Level Organizations -->
 {% if divisions %}
-    <div class="card mb-4">
-        <div class="card-header">
+    <div class="card mb-5 animate__animated animate__fadeInUp animate__delay-1s">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0 org-level-1">
-                <i class="bi bi-diagram-2"></i> 部一覧
+                <i class="bi bi-diagram-2-fill me-2"></i>部一覧
+                <span class="badge bg-warning ms-2">{{ divisions.count }}</span>
             </h5>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-light" data-view="card" data-level="divisions">
+                    <i class="bi bi-grid-3x2"></i>
+                </button>
+                <button type="button" class="btn btn-light active" data-view="grid" data-level="divisions">
+                    <i class="bi bi-grid"></i>
+                </button>
+            </div>
         </div>
         <div class="card-body">
-            <div class="row">
+            <div class="row" id="divisionsContainer">
                 {% for division in divisions %}
-                    <div class="col-md-6 col-lg-4 mb-3">
-                        <div class="card border-warning">
-                            <div class="card-body">
-                                <h6 class="card-title org-level-1">
-                                    <a href="{% url 'organization_detail' division.pk %}">
-                                        {{ division.name }}
-                                    </a>
-                                </h6>
-                                <p class="card-text">
-                                    <small class="text-muted">
-                                        <i class="bi bi-building"></i> {{ division.parent.name }}
-                                        <br>
-                                        <i class="bi bi-people"></i> {{ division.member_count }}人
-                                        <i class="bi bi-diagram-3"></i> {{ division.children.count }}課
-                                    </small>
-                                </p>
+                    <div class="col-md-6 col-lg-4 mb-4 organization-item animate__animated animate__fadeInUp" 
+                         style="animation-delay: {{ forloop.counter0|add:5 }}00ms;">
+                        <div class="card h-100 border-warning border-2 organization-card">
+                            <div class="card-body position-relative">
+                                <!-- Status Indicator -->
+                                <div class="position-absolute top-0 end-0 m-3">
+                                    <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center text-white"
+                                         style="width: 30px; height: 30px;">
+                                        <i class="bi bi-diagram-2-fill"></i>
+                                    </div>
+                                </div>
+                                
+                                <!-- Organization Header -->
+                                <div class="mb-3">
+                                    <h6 class="card-title org-level-1 mb-2 fw-bold">
+                                        <a href="{% url 'organization_detail' division.pk %}" class="text-decoration-none">
+                                            {{ division.name }}
+                                        </a>
+                                    </h6>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge rounded-pill" style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);">
+                                            {{ division.get_level_display }}
+                                        </span>
+                                        <small class="text-muted">
+                                            <i class="bi bi-arrow-up me-1"></i>{{ division.parent.name }}
+                                        </small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Statistics -->
+                                <div class="row text-center mb-3">
+                                    <div class="col-6">
+                                        <div class="border-end">
+                                            <h5 class="text-primary mb-0">{{ division.member_count }}</h5>
+                                            <small class="text-muted">メンバー</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <h5 class="text-success mb-0">{{ division.children.count }}</h5>
+                                        <small class="text-muted">課</small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Description -->
                                 {% if division.description %}
-                                    <p class="card-text">
-                                        <small>{{ division.description|truncatechars:50 }}</small>
+                                    <p class="card-text text-muted small mb-3">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        {{ division.description|truncatechars:80 }}
                                     </p>
                                 {% endif %}
+                                
+                                <!-- Actions -->
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted">
+                                        <i class="bi bi-calendar-plus me-1"></i>
                                         {{ division.created_at|date:"Y/m/d" }}
                                     </small>
                                     <div class="btn-group">
                                         <a href="{% url 'organization_detail' division.pk %}" 
                                            class="btn btn-sm btn-outline-primary">
-                                            詳細
+                                            <i class="bi bi-eye"></i>
                                         </a>
                                         <a href="{% url 'person_list' %}?organization={{ division.id }}" 
                                            class="btn btn-sm btn-outline-success">
-                                            メンバー
+                                            <i class="bi bi-people"></i>
                                         </a>
                                     </div>
                                 </div>
@@ -175,49 +341,83 @@
     </div>
 {% endif %}
 
-<!-- 課一覧 -->
+<!-- Section Level Organizations -->
 {% if sections %}
-    <div class="card mb-4">
-        <div class="card-header">
+    <div class="card mb-5 animate__animated animate__fadeInUp animate__delay-2s">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0 org-level-2">
-                <i class="bi bi-diagram-3"></i> 課一覧
+                <i class="bi bi-diagram-3-fill me-2"></i>課一覧
+                <span class="badge bg-info ms-2">{{ sections.count }}</span>
             </h5>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-light" data-view="card" data-level="sections">
+                    <i class="bi bi-grid-3x2"></i>
+                </button>
+                <button type="button" class="btn btn-light active" data-view="grid" data-level="sections">
+                    <i class="bi bi-grid"></i>
+                </button>
+            </div>
         </div>
         <div class="card-body">
-            <div class="row">
+            <div class="row" id="sectionsContainer">
                 {% for section in sections %}
-                    <div class="col-md-6 col-lg-4 mb-3">
-                        <div class="card border-info">
-                            <div class="card-body">
-                                <h6 class="card-title org-level-2">
-                                    <a href="{% url 'organization_detail' section.pk %}">
-                                        {{ section.name }}
-                                    </a>
-                                </h6>
-                                <p class="card-text">
-                                    <small class="text-muted">
-                                        <i class="bi bi-diagram-2"></i> {{ section.parent.name }}
-                                        <br>
-                                        <i class="bi bi-people"></i> {{ section.member_count }}人
-                                    </small>
-                                </p>
+                    <div class="col-md-6 col-lg-4 mb-4 organization-item animate__animated animate__fadeInUp" 
+                         style="animation-delay: {{ forloop.counter0|add:10 }}00ms;">
+                        <div class="card h-100 border-info border-2 organization-card">
+                            <div class="card-body position-relative">
+                                <!-- Status Indicator -->
+                                <div class="position-absolute top-0 end-0 m-3">
+                                    <div class="bg-info rounded-circle d-flex align-items-center justify-content-center text-white"
+                                         style="width: 30px; height: 30px;">
+                                        <i class="bi bi-diagram-3-fill"></i>
+                                    </div>
+                                </div>
+                                
+                                <!-- Organization Header -->
+                                <div class="mb-3">
+                                    <h6 class="card-title org-level-2 mb-2 fw-bold">
+                                        <a href="{% url 'organization_detail' section.pk %}" class="text-decoration-none">
+                                            {{ section.name }}
+                                        </a>
+                                    </h6>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge rounded-pill" style="background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);">
+                                            {{ section.get_level_display }}
+                                        </span>
+                                        <small class="text-muted">
+                                            <i class="bi bi-arrow-up me-1"></i>{{ section.parent.name }}
+                                        </small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Statistics -->
+                                <div class="text-center mb-3">
+                                    <h4 class="text-primary mb-0">{{ section.member_count }}</h4>
+                                    <small class="text-muted">メンバー数</small>
+                                </div>
+                                
+                                <!-- Description -->
                                 {% if section.description %}
-                                    <p class="card-text">
-                                        <small>{{ section.description|truncatechars:50 }}</small>
+                                    <p class="card-text text-muted small mb-3">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        {{ section.description|truncatechars:80 }}
                                     </p>
                                 {% endif %}
+                                
+                                <!-- Actions -->
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted">
+                                        <i class="bi bi-calendar-plus me-1"></i>
                                         {{ section.created_at|date:"Y/m/d" }}
                                     </small>
                                     <div class="btn-group">
                                         <a href="{% url 'organization_detail' section.pk %}" 
                                            class="btn btn-sm btn-outline-primary">
-                                            詳細
+                                            <i class="bi bi-eye"></i>
                                         </a>
                                         <a href="{% url 'person_list' %}?organization={{ section.id }}" 
                                            class="btn btn-sm btn-outline-success">
-                                            メンバー
+                                            <i class="bi bi-people"></i>
                                         </a>
                                     </div>
                                 </div>
@@ -230,141 +430,302 @@
     </div>
 {% endif %}
 
-<!-- 組織がない場合 -->
+<!-- Empty State -->
 {% if not departments and not divisions and not sections %}
-    <div class="text-center py-5">
-        <i class="bi bi-building fs-1 text-muted"></i>
-        <h4 class="text-muted mt-3">組織が登録されていません</h4>
-        <p class="text-muted">最初の組織を追加してみましょう。</p>
-        <a href="{% url 'organization_create' %}" class="btn btn-primary">
-            組織を追加
-        </a>
+    <div class="text-center py-5 animate__animated animate__fadeIn">
+        <div class="mb-4">
+            <i class="bi bi-building fs-1 text-muted opacity-50"></i>
+        </div>
+        <h3 class="text-muted mb-3">組織が登録されていません</h3>
+        <p class="text-muted mb-4">
+            企業の組織構造を構築して、効率的な人材管理を始めましょう。<br>
+            部門から課まで、階層的な組織構造を簡単に作成できます。
+        </p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'organization_create' %}" class="btn btn-primary btn-lg rounded-pill">
+                <i class="bi bi-plus-circle me-2"></i>最初の組織を追加
+            </a>
+            <button class="btn btn-outline-secondary btn-lg rounded-pill" data-bs-toggle="modal" data-bs-target="#importModal">
+                <i class="bi bi-upload me-2"></i>インポート
+            </button>
+        </div>
     </div>
 {% endif %}
 
-<!-- 組織階層図 -->
-{% if departments %}
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
-                <i class="bi bi-diagram-3"></i> 組織階層図
-            </h5>
-            <a href="{% url 'relationship_graph' %}" class="btn btn-sm btn-outline-primary">
-                詳細な関連図を表示
-            </a>
-        </div>
-        <div class="card-body">
-            <div class="org-tree">
-                {% for department in departments %}
-                    <div class="org-node level-0">
-                        <div class="org-card bg-danger text-white">
-                            <strong>{{ department.name }}</strong>
-                            <small class="d-block">{{ department.member_count }}人</small>
-                        </div>
-                        
-                        {% if department.children.all %}
-                            <div class="org-children">
-                                {% for division in department.children.all %}
-                                    <div class="org-node level-1">
-                                        <div class="org-card bg-warning text-white">
-                                            <strong>{{ division.name }}</strong>
-                                            <small class="d-block">{{ division.members.count }}人</small>
-                                        </div>
-                                        
-                                        {% if division.children.all %}
-                                            <div class="org-children">
-                                                {% for section in division.children.all %}
-                                                    <div class="org-node level-2">
-                                                        <div class="org-card bg-info text-white">
-                                                            <strong>{{ section.name }}</strong>
-                                                            <small class="d-block">{{ section.members.count }}人</small>
-                                                        </div>
-                                                    </div>
-                                                {% endfor %}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
+<!-- Organization Structure Modal -->
+<div class="modal fade" id="orgStructureModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-diagram-3 me-2"></i>組織構造図
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="orgStructureChart" style="height: 500px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                <a href="{% url 'relationship_graph' %}" class="btn btn-primary">
+                    <i class="bi bi-share me-2"></i>詳細な関連図へ
+                </a>
             </div>
         </div>
     </div>
-{% endif %}
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-upload me-2"></i>組織データをインポート
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="importFile" class="form-label">CSVファイル</label>
+                        <input type="file" class="form-control" id="importFile" accept=".csv">
+                        <div class="form-text">
+                            組織データを含むCSVファイルをアップロードしてください。
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="updateExisting">
+                            <label class="form-check-label" for="updateExisting">
+                                既存の組織を更新する
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary">
+                    <i class="bi bi-upload me-2"></i>インポート開始
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
-{% block extra_css %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Counter animation for stats
+    function animateCounter(element, start, end, duration) {
+        const range = end - start;
+        let current = start;
+        const increment = end > start ? 1 : -1;
+        const stepTime = Math.abs(Math.floor(duration / range));
+        
+        if (range === 0) return;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            element.textContent = current;
+            if (current === end) {
+                clearInterval(timer);
+            }
+        }, stepTime);
+    }
+
+    // Animate stats when they come into view
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const countElement = entry.target.querySelector('h2');
+                if (countElement) {
+                    const targetValue = parseInt(countElement.textContent);
+                    if (!isNaN(targetValue)) {
+                        countElement.textContent = '0';
+                        animateCounter(countElement, 0, targetValue, 1500);
+                        observer.unobserve(entry.target);
+                    }
+                }
+            }
+        });
+    }, { threshold: 0.5 });
+
+    document.querySelectorAll('.stats-card').forEach(card => {
+        observer.observe(card);
+    });
+
+    // Calculate and animate total members
+    let totalMembers = 0;
+    document.querySelectorAll('.organization-card').forEach(card => {
+        const memberCount = card.querySelector('.text-primary');
+        if (memberCount) {
+            totalMembers += parseInt(memberCount.textContent) || 0;
+        }
+    });
+    
+    const totalMembersElement = document.getElementById('totalMembers');
+    if (totalMembersElement) {
+        setTimeout(() => {
+            animateCounter(totalMembersElement, 0, totalMembers, 2000);
+        }, 1000);
+    }
+
+    // View switcher functionality
+    document.querySelectorAll('[data-view]').forEach(button => {
+        button.addEventListener('click', function() {
+            const view = this.dataset.view;
+            const level = this.dataset.level;
+            const container = document.getElementById(level + 'Container');
+            
+            // Update button states
+            this.parentElement.querySelectorAll('button').forEach(btn => {
+                btn.classList.remove('btn-light', 'active');
+                btn.classList.add('btn-outline-light');
+            });
+            this.classList.remove('btn-outline-light');
+            this.classList.add('btn-light', 'active');
+            
+            // Update container layout
+            const items = container.querySelectorAll('.organization-item');
+            items.forEach(item => {
+                if (view === 'card') {
+                    item.className = 'col-12 mb-4 organization-item animate__animated animate__fadeInUp';
+                } else {
+                    item.className = 'col-md-6 col-lg-4 mb-4 organization-item animate__animated animate__fadeInUp';
+                }
+            });
+        });
+    });
+
+    // Enhanced card hover effects
+    document.querySelectorAll('.organization-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px) scale(1.02)';
+            this.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            this.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.15)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+            this.style.boxShadow = '';
+        });
+    });
+
+    // Stagger animations
+    document.querySelectorAll('.organization-item').forEach((item, index) => {
+        item.style.animationDelay = `${index * 0.1}s`;
+    });
+
+    // Organization structure chart (if modal is opened)
+    document.getElementById('orgStructureModal').addEventListener('shown.bs.modal', function() {
+        createOrgChart();
+    });
+
+    function createOrgChart() {
+        const container = document.getElementById('orgStructureChart');
+        
+        // Simple hierarchical chart using CSS and DOM manipulation
+        container.innerHTML = `
+            <div class="org-chart">
+                <div class="org-level">
+                    <h6 class="text-center mb-3 text-muted">部門レベル</h6>
+                    <div class="d-flex justify-content-center flex-wrap gap-3">
+                        {% for dept in departments %}
+                            <div class="org-node dept-node">
+                                <div class="org-card bg-danger text-white">
+                                    <strong>{{ dept.name }}</strong>
+                                    <small class="d-block">{{ dept.member_count }}人</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="org-connector"></div>
+                
+                <div class="org-level">
+                    <h6 class="text-center mb-3 text-muted">部レベル</h6>
+                    <div class="d-flex justify-content-center flex-wrap gap-3">
+                        {% for div in divisions %}
+                            <div class="org-node div-node">
+                                <div class="org-card bg-warning text-white">
+                                    <strong>{{ div.name }}</strong>
+                                    <small class="d-block">{{ div.member_count }}人</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="org-connector"></div>
+                
+                <div class="org-level">
+                    <h6 class="text-center mb-3 text-muted">課レベル</h6>
+                    <div class="d-flex justify-content-center flex-wrap gap-3">
+                        {% for sect in sections %}
+                            <div class="org-node sect-node">
+                                <div class="org-card bg-info text-white">
+                                    <strong>{{ sect.name }}</strong>
+                                    <small class="d-block">{{ sect.member_count }}人</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Import functionality
+    document.getElementById('importFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Add file validation and preview logic here
+            console.log('Selected file:', file.name);
+        }
+    });
+});
+</script>
+
 <style>
-.org-tree {
+.org-chart {
     display: flex;
     flex-direction: column;
     align-items: center;
-    font-family: Arial, sans-serif;
+    gap: 30px;
+}
+
+.org-level {
+    width: 100%;
+}
+
+.org-connector {
+    width: 2px;
+    height: 20px;
+    background: linear-gradient(to bottom, #ccc, #999);
+    border-radius: 1px;
 }
 
 .org-node {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 10px;
-    position: relative;
+    display: inline-block;
+    margin: 5px;
 }
 
 .org-card {
-    padding: 10px 15px;
-    border-radius: 8px;
+    padding: 15px 20px;
+    border-radius: 12px;
     text-align: center;
     min-width: 120px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    margin-bottom: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
 }
 
-.org-children {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    position: relative;
-}
-
-.org-children::before {
-    content: '';
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 2px;
-    height: 10px;
-    background-color: #ccc;
-}
-
-.level-1 .org-children,
-.level-2 .org-children {
-    margin-top: 20px;
-}
-
-.level-1::before,
-.level-2::before {
-    content: '';
-    position: absolute;
-    top: -30px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 2px;
-    height: 20px;
-    background-color: #ccc;
-}
-
-@media (max-width: 768px) {
-    .org-children {
-        flex-direction: column;
-    }
-    
-    .org-card {
-        min-width: 100px;
-        font-size: 0.9em;
-    }
+.org-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
 </style>
 {% endblock %}
