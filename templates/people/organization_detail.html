@@ -30,11 +30,14 @@
                         <i class="bi bi-person-plus me-2"></i>メンバーを追加
                     </a></li>
                     <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addRelationModal">
+                        <i class="bi bi-plus-circle me-2"></i>関係を追加
+                    </a></li>
                     <li><a class="dropdown-item" href="{% url 'relationship_graph' %}?organization={{ organization.id }}">
                         <i class="bi bi-share me-2"></i>関連図を表示
                     </a></li>
-                    <li><a class="dropdown-item" href="{% url 'organization_relation_create' %}">
-                        <i class="bi bi-plus-circle me-2"></i>組織関係を追加
+                    <li><a class="dropdown-item" href="{% url 'organization_relation_matrix' %}">
+                        <i class="bi bi-grid-3x3 me-2"></i>関係マトリックス
                     </a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item text-danger" href="{% url 'organization_delete' organization.pk %}">
@@ -92,7 +95,10 @@
                     <a href="{% url 'person_create' %}" class="btn btn-outline-success rounded-pill">
                         <i class="bi bi-person-plus me-2"></i>メンバーを追加
                     </a>
-                    <a href="{% url 'relationship_graph' %}?organization={{ organization.id }}" class="btn btn-outline-info rounded-pill">
+                    <button type="button" class="btn btn-outline-info rounded-pill" data-bs-toggle="modal" data-bs-target="#addRelationModal">
+                        <i class="bi bi-plus-circle me-2"></i>関係を追加
+                    </button>
+                    <a href="{% url 'relationship_graph' %}?organization={{ organization.id }}" class="btn btn-outline-warning rounded-pill">
                         <i class="bi bi-share me-2"></i>関連図表示
                     </a>
                 </div>
@@ -128,8 +134,80 @@
             </div>
         </div>
         
-        <!-- Hierarchy Information -->
+        <!-- Quick Relationship Management -->
         <div class="card mt-3 animate__animated animate__fadeInUp animate__delay-2s">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="bi bi-lightning me-2"></i>関係クイック管理
+                </h6>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addRelationModal">
+                    <i class="bi bi-plus-circle"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <!-- Recent Relations -->
+                {% if outgoing_relations|slice:":3" or incoming_relations|slice:":3" %}
+                    <div class="quick-relations">
+                        {% for relation in outgoing_relations|slice:":3" %}
+                            <div class="relation-item mb-2">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="relation-info">
+                                        <small class="text-muted">→</small>
+                                        <span class="org-name">{{ relation.to_organization.name }}</span>
+                                        <span class="badge relation-badge" data-type="{{ relation.relation_type }}">
+                                            {{ relation.get_relation_type_display }}
+                                        </span>
+                                    </div>
+                                    <div class="relation-actions">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                onclick="editRelation({{ relation.id }})">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        
+                        {% for relation in incoming_relations|slice:":3" %}
+                            <div class="relation-item mb-2">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="relation-info">
+                                        <small class="text-muted">←</small>
+                                        <span class="org-name">{{ relation.from_organization.name }}</span>
+                                        <span class="badge relation-badge" data-type="{{ relation.relation_type }}">
+                                            {{ relation.get_relation_type_display }}
+                                        </span>
+                                    </div>
+                                    <div class="relation-actions">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                onclick="editRelation({{ relation.id }})">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if outgoing_relations.count|add:incoming_relations.count > 3 %}
+                        <div class="text-center mt-3">
+                            <small class="text-muted">他 {{ outgoing_relations.count|add:incoming_relations.count|add:"-3" }} 件の関係</small>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-diagram-2 fs-3 text-muted opacity-50"></i>
+                        <p class="text-muted small mt-2">関係が設定されていません</p>
+                        <button type="button" class="btn btn-sm btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#addRelationModal">
+                            <i class="bi bi-plus-circle me-1"></i>最初の関係を追加
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Hierarchy Information -->
+        <div class="card mt-3 animate__animated animate__fadeInUp animate__delay-3s">
             <div class="card-header">
                 <h6 class="mb-0">
                     <i class="bi bi-diagram-3 me-2"></i>階層情報
@@ -192,9 +270,197 @@
             </div>
         {% endif %}
         
+        <!-- Organization Relations -->
+        {% if outgoing_relations or incoming_relations %}
+            <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-1s">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-share-fill me-2"></i>組織関係
+                        <span class="badge bg-info ms-2">{{ outgoing_relations.count|add:incoming_relations.count }}</span>
+                    </h5>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addRelationModal">
+                            <i class="bi bi-plus-circle me-1"></i>追加
+                        </button>
+                        <a href="{% url 'organization_relation_matrix' %}" class="btn btn-outline-info">
+                            <i class="bi bi-grid-3x3 me-1"></i>マトリックス
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Relationship Tabs -->
+                    <ul class="nav nav-pills mb-4" role="tablist">
+                        {% if outgoing_relations %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="outgoing-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#outgoing" type="button" role="tab">
+                                    <i class="bi bi-arrow-right-circle me-2"></i>
+                                    関係先 ({{ outgoing_relations.count }})
+                                </button>
+                            </li>
+                        {% endif %}
+                        {% if incoming_relations %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link {% if not outgoing_relations %}active{% endif %}" 
+                                        id="incoming-tab" data-bs-toggle="pill" data-bs-target="#incoming" 
+                                        type="button" role="tab">
+                                    <i class="bi bi-arrow-left-circle me-2"></i>
+                                    関係元 ({{ incoming_relations.count }})
+                                </button>
+                            </li>
+                        {% endif %}
+                    </ul>
+                    
+                    <!-- Tab Content -->
+                    <div class="tab-content">
+                        {% if outgoing_relations %}
+                            <div class="tab-pane fade show active" id="outgoing" role="tabpanel">
+                                <div class="row">
+                                    {% for relation in outgoing_relations %}
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card border-start border-primary border-4 h-100 relation-card">
+                                                <div class="card-body py-3 position-relative">
+                                                    <!-- Edit button -->
+                                                    <div class="position-absolute top-0 end-0 m-2">
+                                                        <div class="btn-group btn-group-sm">
+                                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                                    onclick="editRelation({{ relation.id }})">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                                    onclick="deleteRelation({{ relation.id }})">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="me-3">
+                                                            <div class="org-icon" style="background: {% if relation.to_organization.level == 0 %}#dc3545{% elif relation.to_organization.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
+                                                                <i class="bi bi-building text-white"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-1">
+                                                                <a href="{% url 'organization_detail' relation.to_organization.pk %}" 
+                                                                   class="text-decoration-none">
+                                                                    {{ relation.to_organization.name }}
+                                                                </a>
+                                                            </h6>
+                                                            <p class="mb-1 text-muted small">{{ relation.to_organization.get_level_display }}</p>
+                                                            <span class="badge relation-badge" data-type="{{ relation.relation_type }}">
+                                                                {{ relation.get_relation_type_display }}
+                                                            </span>
+                                                            <div class="mt-1">
+                                                                {% for i in "12345"|make_list %}
+                                                                    <i class="bi bi-star{% if forloop.counter <= relation.strength %}-fill text-warning{% else %} text-muted{% endif %}" style="font-size: 0.8rem;"></i>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {% if relation.description %}
+                                                        <p class="mt-3 mb-0 small text-muted">
+                                                            <i class="bi bi-chat-quote me-1"></i>
+                                                            {{ relation.description|truncatechars:80 }}
+                                                        </p>
+                                                    {% endif %}
+                                                    
+                                                    <!-- Tags -->
+                                                    {% if relation.tags.all %}
+                                                        <div class="mt-2">
+                                                            {% for tag in relation.tags.all|slice:":2" %}
+                                                                <span class="badge me-1" style="background-color: {{ tag.color }}; font-size: 0.6rem;">
+                                                                    {{ tag.name }}
+                                                                </span>
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if incoming_relations %}
+                            <div class="tab-pane fade {% if not outgoing_relations %}show active{% endif %}" 
+                                 id="incoming" role="tabpanel">
+                                <div class="row">
+                                    {% for relation in incoming_relations %}
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card border-start border-success border-4 h-100 relation-card">
+                                                <div class="card-body py-3 position-relative">
+                                                    <!-- Edit button -->
+                                                    <div class="position-absolute top-0 end-0 m-2">
+                                                        <div class="btn-group btn-group-sm">
+                                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                                    onclick="editRelation({{ relation.id }})">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                                    onclick="deleteRelation({{ relation.id }})">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="me-3">
+                                                            <div class="org-icon" style="background: {% if relation.from_organization.level == 0 %}#dc3545{% elif relation.from_organization.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
+                                                                <i class="bi bi-building text-white"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-1">
+                                                                <a href="{% url 'organization_detail' relation.from_organization.pk %}"
+                                                                   class="text-decoration-none">
+                                                                    {{ relation.from_organization.name }}
+                                                                </a>
+                                                            </h6>
+                                                            <p class="mb-1 text-muted small">{{ relation.from_organization.get_level_display }}</p>
+                                                            <span class="badge relation-badge" data-type="{{ relation.relation_type }}">
+                                                                {{ relation.get_relation_type_display }}
+                                                            </span>
+                                                            <div class="mt-1">
+                                                                {% for i in "12345"|make_list %}
+                                                                    <i class="bi bi-star{% if forloop.counter <= relation.strength %}-fill text-warning{% else %} text-muted{% endif %}" style="font-size: 0.8rem;"></i>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {% if relation.description %}
+                                                        <p class="mt-3 mb-0 small text-muted">
+                                                            <i class="bi bi-chat-quote me-1"></i>
+                                                            {{ relation.description|truncatechars:80 }}
+                                                        </p>
+                                                    {% endif %}
+                                                    
+                                                    <!-- Tags -->
+                                                    {% if relation.tags.all %}
+                                                        <div class="mt-2">
+                                                            {% for tag in relation.tags.all|slice:":2" %}
+                                                                <span class="badge me-1" style="background-color: {{ tag.color }}; font-size: 0.6rem;">
+                                                                    {{ tag.name }}
+                                                                </span>
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
         <!-- Members -->
         {% if members %}
-            <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-1s">
+            <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-2s">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="bi bi-people-fill me-2"></i>メンバー
@@ -251,7 +517,7 @@
         
         <!-- Child Organizations -->
         {% if children %}
-            <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-2s">
+            <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-3s">
                 <div class="card-header">
                     <h5 class="mb-0">
                         <i class="bi bi-diagram-2-fill me-2"></i>子組織
@@ -292,145 +558,6 @@
             </div>
         {% endif %}
         
-        <!-- Organization Relations -->
-        {% if outgoing_relations or incoming_relations %}
-            <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-3s">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="bi bi-share-fill me-2"></i>組織関係
-                        <span class="badge bg-info ms-2">{{ outgoing_relations.count|add:incoming_relations.count }}</span>
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <!-- Relationship Tabs -->
-                    <ul class="nav nav-pills mb-4" role="tablist">
-                        {% if outgoing_relations %}
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="outgoing-tab" data-bs-toggle="pill" 
-                                        data-bs-target="#outgoing" type="button" role="tab">
-                                    <i class="bi bi-arrow-right-circle me-2"></i>
-                                    関係先 ({{ outgoing_relations.count }})
-                                </button>
-                            </li>
-                        {% endif %}
-                        {% if incoming_relations %}
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link {% if not outgoing_relations %}active{% endif %}" 
-                                        id="incoming-tab" data-bs-toggle="pill" data-bs-target="#incoming" 
-                                        type="button" role="tab">
-                                    <i class="bi bi-arrow-left-circle me-2"></i>
-                                    関係元 ({{ incoming_relations.count }})
-                                </button>
-                            </li>
-                        {% endif %}
-                    </ul>
-                    
-                    <!-- Tab Content -->
-                    <div class="tab-content">
-                        {% if outgoing_relations %}
-                            <div class="tab-pane fade show active" id="outgoing" role="tabpanel">
-                                <div class="row">
-                                    {% for relation in outgoing_relations %}
-                                        <div class="col-md-6 mb-3">
-                                            <div class="card border-start border-primary border-4 h-100">
-                                                <div class="card-body py-3">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="me-3">
-                                                            <div class="org-icon" style="background: {% if relation.to_organization.level == 0 %}#dc3545{% elif relation.to_organization.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
-                                                                <i class="bi bi-building text-white"></i>
-                                                            </div>
-                                                        </div>
-                                                        <div class="flex-grow-1">
-                                                            <h6 class="mb-1">
-                                                                <a href="{% url 'organization_detail' relation.to_organization.pk %}" 
-                                                                   class="text-decoration-none">
-                                                                    {{ relation.to_organization.name }}
-                                                                </a>
-                                                            </h6>
-                                                            <p class="mb-1 text-muted small">{{ relation.to_organization.get_level_display }}</p>
-                                                            <span class="badge bg-primary rounded-pill">
-                                                                {{ relation.get_relation_type_display }}
-                                                            </span>
-                                                            <div class="mt-1">
-                                                                {% for i in "12345"|make_list %}
-                                                                    <i class="bi bi-star{% if forloop.counter <= relation.strength %}-fill text-warning{% else %} text-muted{% endif %}" style="font-size: 0.8rem;"></i>
-                                                                {% endfor %}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    {% if relation.description %}
-                                                        <p class="mt-3 mb-0 small text-muted">
-                                                            <i class="bi bi-chat-quote me-1"></i>
-                                                            {{ relation.description|truncatechars:80 }}
-                                                        </p>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        {% endif %}
-                        
-                        {% if incoming_relations %}
-                            <div class="tab-pane fade {% if not outgoing_relations %}show active{% endif %}" 
-                                 id="incoming" role="tabpanel">
-                                <div class="row">
-                                    {% for relation in incoming_relations %}
-                                        <div class="col-md-6 mb-3">
-                                            <div class="card border-start border-success border-4 h-100">
-                                                <div class="card-body py-3">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="me-3">
-                                                            <div class="org-icon" style="background: {% if relation.from_organization.level == 0 %}#dc3545{% elif relation.from_organization.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
-                                                                <i class="bi bi-building text-white"></i>
-                                                            </div>
-                                                        </div>
-                                                        <div class="flex-grow-1">
-                                                            <h6 class="mb-1">
-                                                                <a href="{% url 'organization_detail' relation.from_organization.pk %}"
-                                                                   class="text-decoration-none">
-                                                                    {{ relation.from_organization.name }}
-                                                                </a>
-                                                            </h6>
-                                                            <p class="mb-1 text-muted small">{{ relation.from_organization.get_level_display }}</p>
-                                                            <span class="badge bg-success rounded-pill">
-                                                                {{ relation.get_relation_type_display }}
-                                                            </span>
-                                                            <div class="mt-1">
-                                                                {% for i in "12345"|make_list %}
-                                                                    <i class="bi bi-star{% if forloop.counter <= relation.strength %}-fill text-warning{% else %} text-muted{% endif %}" style="font-size: 0.8rem;"></i>
-                                                                {% endfor %}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    {% if relation.description %}
-                                                        <p class="mt-3 mb-0 small text-muted">
-                                                            <i class="bi bi-chat-quote me-1"></i>
-                                                            {{ relation.description|truncatechars:80 }}
-                                                        </p>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Add Relationship Button -->
-                    {% if user.is_authenticated %}
-                        <div class="text-center mt-4">
-                            <a href="{% url 'organization_relation_create' %}" class="btn btn-outline-primary rounded-pill">
-                                <i class="bi bi-plus-circle me-2"></i>新しい関係を追加
-                            </a>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        {% endif %}
-        
         <!-- System Information -->
         <div class="card animate__animated animate__fadeInRight animate__delay-4s">
             <div class="card-header">
@@ -464,43 +591,437 @@
     </div>
 </div>
 
-<!-- Action Bar -->
-{% if user.is_authenticated %}
-    <div class="row mt-5">
-        <div class="col-12">
-            <div class="card animate__animated animate__fadeInUp animate__delay-5s">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">
-                            <i class="bi bi-gear me-2"></i>アクション
-                        </h6>
-                        <div class="btn-group" role="group">
-                            <a href="{% url 'organization_edit' organization.pk %}" class="btn btn-primary rounded-pill me-2">
-                                <i class="bi bi-pencil me-2"></i>編集
-                            </a>
-                            <a href="{% url 'organization_list' %}" class="btn btn-outline-secondary rounded-pill me-2">
-                                <i class="bi bi-list me-2"></i>一覧
-                            </a>
-                            <a href="{% url 'organization_create' %}" class="btn btn-outline-success rounded-pill me-2">
-                                <i class="bi bi-building-add me-2"></i>新規追加
-                            </a>
-                            <a href="{% url 'relationship_graph' %}?organization={{ organization.id }}" 
-                               class="btn btn-outline-info rounded-pill">
-                                <i class="bi bi-share me-2"></i>関連図表示
-                            </a>
+<!-- Add Relation Modal -->
+<div class="modal fade" id="addRelationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle me-2"></i>新しい関係を追加
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addRelationForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="currentOrgId" value="{{ organization.id }}">
+                    
+                    <!-- Direction Selection -->
+                    <div class="mb-3">
+                        <label class="form-label">関係の方向</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="direction" id="outgoing" value="outgoing" checked>
+                            <label class="btn btn-outline-primary" for="outgoing">
+                                <i class="bi bi-arrow-right me-2"></i>{{ organization.name }} → 他の組織
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="direction" id="incoming" value="incoming">
+                            <label class="btn btn-outline-success" for="incoming">
+                                <i class="bi bi-arrow-left me-2"></i>他の組織 → {{ organization.name }}
+                            </label>
                         </div>
                     </div>
-                </div>
+                    
+                    <!-- Target Organization -->
+                    <div class="mb-3">
+                        <label for="targetOrganization" class="form-label">対象組織</label>
+                        <select class="form-select" id="targetOrganization" required>
+                            <option value="">組織を選択してください</option>
+                            {% for org in all_organizations %}
+                                {% if org.id != organization.id %}
+                                    <option value="{{ org.id }}" data-level="{{ org.level }}" data-path="{{ org.get_full_path }}">
+                                        {{ org.get_full_path }}
+                                    </option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            関係を設定する対象の組織を選択してください
+                        </div>
+                    </div>
+                    
+                    <!-- Relation Preview -->
+                    <div class="relation-preview mb-3 p-3 bg-light rounded" id="relationPreview" style="display: none;">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <div class="org-preview from-org">
+                                <div class="org-icon">
+                                    <i class="bi bi-building"></i>
+                                </div>
+                                <span class="org-name">組織A</span>
+                            </div>
+                            <div class="mx-3">
+                                <i class="bi bi-arrow-right fs-3 text-primary" id="previewArrow"></i>
+                            </div>
+                            <div class="org-preview to-org">
+                                <div class="org-icon">
+                                    <i class="bi bi-building"></i>
+                                </div>
+                                <span class="org-name">組織B</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="relationType" class="form-label">関係の種類</label>
+                            <select class="form-select" id="relationType" required>
+                                <option value="cooperation">協力関係</option>
+                                <option value="reporting">報告関係</option>
+                                <option value="support">サポート関係</option>
+                                <option value="partnership">パートナー関係</option>
+                                <option value="dependency">依存関係</option>
+                                <option value="communication">連絡関係</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="strength" class="form-label">関係の強さ</label>
+                            <select class="form-select" id="strength">
+                                <option value="1">1 - 弱い</option>
+                                <option value="2">2 - やや弱い</option>
+                                <option value="3" selected>3 - 標準</option>
+                                <option value="4">4 - 強い</option>
+                                <option value="5">5 - 非常に強い</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">説明</label>
+                        <textarea class="form-control" id="description" rows="3" 
+                                  placeholder="この関係の詳細や背景を説明してください"></textarea>
+                    </div>
+                    
+                    <!-- Tag Selection -->
+                    <div class="mb-3">
+                        <label class="form-label">タグ</label>
+                        <div class="tag-selection">
+                            {% for tag in tags %}
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="tag_{{ tag.id }}" value="{{ tag.id }}">
+                                    <label class="form-check-label" for="tag_{{ tag.id }}">
+                                        <span class="badge" style="background-color: {{ tag.color }};">{{ tag.name }}</span>
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary" id="saveRelationBtn">
+                    <i class="bi bi-plus-circle me-2"></i>関係を作成
+                </button>
             </div>
         </div>
     </div>
-{% endif %}
+</div>
+
+<!-- Edit Relation Modal -->
+<div class="modal fade" id="editRelationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil-square me-2"></i>関係を編集
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editRelationForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editRelationId">
+                    
+                    <div class="relation-info mb-3 p-3 bg-light rounded">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <div class="text-center">
+                                <strong id="editFromOrgName">組織A</strong>
+                                <div class="my-2">
+                                    <i class="bi bi-arrow-down fs-4 text-primary"></i>
+                                </div>
+                                <strong id="editToOrgName">組織B</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editRelationType" class="form-label">関係の種類</label>
+                            <select class="form-select" id="editRelationType" required>
+                                <option value="cooperation">協力関係</option>
+                                <option value="reporting">報告関係</option>
+                                <option value="support">サポート関係</option>
+                                <option value="partnership">パートナー関係</option>
+                                <option value="dependency">依存関係</option>
+                                <option value="communication">連絡関係</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editStrength" class="form-label">関係の強さ</label>
+                            <select class="form-select" id="editStrength">
+                                <option value="1">1 - 弱い</option>
+                                <option value="2">2 - やや弱い</option>
+                                <option value="3">3 - 標準</option>
+                                <option value="4">4 - 強い</option>
+                                <option value="5">5 - 非常に強い</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editDescription" class="form-label">説明</label>
+                        <textarea class="form-control" id="editDescription" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-danger me-auto" id="deleteRelationBtn">
+                    <i class="bi bi-trash me-2"></i>削除
+                </button>
+                <button type="button" class="btn btn-primary" id="updateRelationBtn">
+                    <i class="bi bi-check-circle me-2"></i>更新
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// CSRF トークンを取得
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Statistics counter animation
+    // イベントリスナーを設定
+    setupEventListeners();
+    
+    // 統計カウンターのアニメーション
+    animateCounters();
+});
+
+function setupEventListeners() {
+    // 方向選択の変更
+    document.querySelectorAll('input[name="direction"]').forEach(radio => {
+        radio.addEventListener('change', updateRelationPreview);
+    });
+    
+    // 対象組織の選択
+    document.getElementById('targetOrganization').addEventListener('change', updateRelationPreview);
+    
+    // 関係保存
+    document.getElementById('saveRelationBtn').addEventListener('click', saveRelation);
+    
+    // 関係更新
+    document.getElementById('updateRelationBtn').addEventListener('click', updateRelation);
+    
+    // 関係削除
+    document.getElementById('deleteRelationBtn').addEventListener('click', confirmDeleteRelation);
+}
+
+function updateRelationPreview() {
+    const direction = document.querySelector('input[name="direction"]:checked')?.value;
+    const targetSelect = document.getElementById('targetOrganization');
+    const preview = document.getElementById('relationPreview');
+    const arrow = document.getElementById('previewArrow');
+    
+    if (targetSelect.value) {
+        const currentOrgName = '{{ organization.name }}';
+        const targetOrgName = targetSelect.options[targetSelect.selectedIndex].text;
+        
+        const fromOrg = preview.querySelector('.from-org .org-name');
+        const toOrg = preview.querySelector('.to-org .org-name');
+        
+        if (direction === 'outgoing') {
+            fromOrg.textContent = currentOrgName;
+            toOrg.textContent = targetOrgName;
+            arrow.className = 'bi bi-arrow-right fs-3 text-primary';
+        } else {
+            fromOrg.textContent = targetOrgName;
+            toOrg.textContent = currentOrgName;
+            arrow.className = 'bi bi-arrow-left fs-3 text-success';
+        }
+        
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+async function saveRelation() {
+    const currentOrgId = document.getElementById('currentOrgId').value;
+    const targetOrgId = document.getElementById('targetOrganization').value;
+    const direction = document.querySelector('input[name="direction"]:checked').value;
+    const relationType = document.getElementById('relationType').value;
+    const strength = document.getElementById('strength').value;
+    const description = document.getElementById('description').value;
+    
+    if (!targetOrgId) {
+        alert('対象組織を選択してください。');
+        return;
+    }
+    
+    // タグの取得
+    const selectedTags = Array.from(document.querySelectorAll('#addRelationModal .form-check-input:checked'))
+        .map(cb => cb.value)
+        .filter(value => value !== 'on'); // radio buttonの値を除外
+    
+    const data = {
+        from_organization: direction === 'outgoing' ? currentOrgId : targetOrgId,
+        to_organization: direction === 'outgoing' ? targetOrgId : currentOrgId,
+        relation_type: relationType,
+        strength: parseInt(strength),
+        description: description,
+        tags: selectedTags
+    };
+    
+    const saveBtn = document.getElementById('saveRelationBtn');
+    const originalText = saveBtn.innerHTML;
+    
+    try {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>作成中...';
+        
+        const response = await fetch('/api/organization-relations/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // モーダルを閉じてページを更新
+            bootstrap.Modal.getInstance(document.getElementById('addRelationModal')).hide();
+            location.reload();
+        } else {
+            alert(result.error || '関係の作成に失敗しました。');
+        }
+        
+    } catch (error) {
+        console.error('Error creating relation:', error);
+        alert('サーバーエラーが発生しました。');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    }
+}
+
+async function editRelation(relationId) {
+    try {
+        // 関係の詳細を取得
+        const response = await fetch(`/api/organization-relations/${relationId}/details/`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const relation = data.relation;
+            
+            // 編集モーダルにデータを設定
+            document.getElementById('editRelationId').value = relationId;
+            document.getElementById('editFromOrgName').textContent = relation.from_organization.name;
+            document.getElementById('editToOrgName').textContent = relation.to_organization.name;
+            document.getElementById('editRelationType').value = relation.relation_type;
+            document.getElementById('editStrength').value = relation.strength;
+            document.getElementById('editDescription').value = relation.description || '';
+            
+            // モーダルを表示
+            const modal = new bootstrap.Modal(document.getElementById('editRelationModal'));
+            modal.show();
+        } else {
+            alert(data.error || '関係の詳細取得に失敗しました。');
+        }
+    } catch (error) {
+        console.error('Error loading relation:', error);
+        alert('サーバーエラーが発生しました。');
+    }
+}
+
+async function updateRelation() {
+    const relationId = document.getElementById('editRelationId').value;
+    const relationType = document.getElementById('editRelationType').value;
+    const strength = document.getElementById('editStrength').value;
+    const description = document.getElementById('editDescription').value;
+    
+    const data = {
+        relation_type: relationType,
+        strength: parseInt(strength),
+        description: description
+    };
+    
+    const updateBtn = document.getElementById('updateRelationBtn');
+    const originalText = updateBtn.innerHTML;
+    
+    try {
+        updateBtn.disabled = true;
+        updateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>更新中...';
+        
+        const response = await fetch(`/api/organization-relations/${relationId}/update/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            bootstrap.Modal.getInstance(document.getElementById('editRelationModal')).hide();
+            location.reload();
+        } else {
+            alert(result.error || '関係の更新に失敗しました。');
+        }
+        
+    } catch (error) {
+        console.error('Error updating relation:', error);
+        alert('サーバーエラーが発生しました。');
+    } finally {
+        updateBtn.disabled = false;
+        updateBtn.innerHTML = originalText;
+    }
+}
+
+function confirmDeleteRelation() {
+    const relationId = document.getElementById('editRelationId').value;
+    
+    if (confirm('この関係を削除してもよろしいですか？この操作は元に戻すことができません。')) {
+        deleteRelation(relationId);
+    }
+}
+
+async function deleteRelation(relationId) {
+    try {
+        const response = await fetch(`/api/organization-relations/${relationId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            bootstrap.Modal.getInstance(document.getElementById('editRelationModal')).hide();
+            location.reload();
+        } else {
+            alert(result.error || '関係の削除に失敗しました。');
+        }
+        
+    } catch (error) {
+        console.error('Error deleting relation:', error);
+        alert('サーバーエラーが発生しました。');
+    }
+}
+
+function animateCounters() {
     function animateCounter(element, start, end, duration) {
         const range = end - start;
         let current = start;
@@ -518,54 +1039,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }, stepTime);
     }
 
-    // Animate statistics when they come into view
-    const statsNumbers = document.querySelectorAll('.text-primary, .text-success, .text-warning');
+    // 統計のカウンターアニメーション
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-            if (entry.isIntersecting && entry.target.tagName === 'H4') {
-                const targetValue = parseInt(entry.target.textContent);
-                if (!isNaN(targetValue)) {
-                    entry.target.textContent = '0';
-                    animateCounter(entry.target, 0, targetValue, 1000);
-                    observer.unobserve(entry.target);
+            if (entry.isIntersecting) {
+                const countElement = entry.target.querySelector('h4, h2');
+                if (countElement) {
+                    const targetValue = parseInt(countElement.textContent);
+                    if (!isNaN(targetValue)) {
+                        countElement.textContent = '0';
+                        animateCounter(countElement, 0, targetValue, 1000);
+                        observer.unobserve(entry.target);
+                    }
                 }
             }
         });
     });
 
-    statsNumbers.forEach(stat => {
-        if (stat.tagName === 'H4') {
-            observer.observe(stat);
-        }
+    document.querySelectorAll('.text-center').forEach(stat => {
+        observer.observe(stat);
     });
+}
 
-    // Enhanced card hover effects
-    document.querySelectorAll('.card').forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-2px)';
-            this.style.transition = 'transform 0.3s ease';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0)';
-        });
+// Enhanced card hover effects
+document.querySelectorAll('.relation-card').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-2px)';
+        this.style.transition = 'transform 0.3s ease';
+        this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
     });
-
-    // Relationship tab switching with smooth transition
-    document.querySelectorAll('[data-bs-toggle="pill"]').forEach(tab => {
-        tab.addEventListener('shown.bs.tab', function() {
-            const targetPane = document.querySelector(this.dataset.bsTarget);
-            if (targetPane) {
-                targetPane.style.opacity = '0';
-                targetPane.style.transform = 'translateX(20px)';
-                
-                setTimeout(() => {
-                    targetPane.style.transition = 'all 0.3s ease';
-                    targetPane.style.opacity = '1';
-                    targetPane.style.transform = 'translateX(0)';
-                }, 50);
-            }
-        });
+    
+    card.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '';
     });
 });
 </script>
@@ -630,19 +1136,71 @@ document.addEventListener('DOMContentLoaded', function() {
     font-weight: 500;
 }
 
-.card:hover {
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+.relation-badge {
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 12px;
 }
 
-.fade-in {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.6s ease;
+.relation-badge[data-type="cooperation"] { background-color: #007bff; }
+.relation-badge[data-type="reporting"] { background-color: #28a745; }
+.relation-badge[data-type="support"] { background-color: #ffc107; color: #000; }
+.relation-badge[data-type="partnership"] { background-color: #dc3545; }
+.relation-badge[data-type="dependency"] { background-color: #6f42c1; }
+.relation-badge[data-type="communication"] { background-color: #17a2b8; }
+
+.quick-relations {
+    max-height: 200px;
+    overflow-y: auto;
 }
 
-.fade-in.visible {
-    opacity: 1;
-    transform: translateY(0);
+.relation-item {
+    padding: 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.relation-item:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.org-name {
+    font-weight: 500;
+    margin: 0 8px;
+}
+
+.relation-preview {
+    transition: all 0.3s ease;
+}
+
+.org-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.org-preview .org-icon {
+    width: 50px;
+    height: 50px;
+    background-color: #007bff;
+}
+
+.tag-selection {
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 10px;
+}
+
+.relation-card {
+    transition: all 0.3s ease;
+}
+
+.relation-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 </style>
 {% endblock %}

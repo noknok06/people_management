@@ -10,3 +10,10 @@ def mul(value, arg):
         return int(value) * int(arg)
     except (ValueError, TypeError):
         return ''
+
+
+@register.filter
+def get_item(dictionary, key):
+    if isinstance(dictionary, dict):
+        return dictionary.get(key)
+    return None

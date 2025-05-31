@@ -1,0 +1,900 @@
+<!-- templates/people/organization_relation_matrix.html -->
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}組織関係マトリックス - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-4 pb-3 mb-4">
+    <div>
+        <h1 class="h2 animate__animated animate__fadeInDown">
+            <i class="bi bi-grid-3x3 text-primary me-3"></i>
+            組織関係マトリックス
+        </h1>
+        <p class="text-muted animate__animated animate__fadeInUp animate__delay-1s">
+            組織間の関係を一覧表示で確認・管理
+        </p>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2 animate__animated animate__fadeInRight">
+            <a href="{% url 'organization_relation_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle-fill me-2"></i> 関係を追加
+            </a>
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#bulkEditModal">
+                <i class="bi bi-pencil-square me-2"></i> 一括編集
+            </button>
+        </div>
+        <div class="btn-group animate__animated animate__fadeInRight animate__delay-1s">
+            <a href="{% url 'organization_relation_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-list me-2"></i> リスト表示
+            </a>
+            <a href="{% url 'relationship_graph' %}" class="btn btn-outline-info">
+                <i class="bi bi-share me-2"></i> 関連図
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Control Panel -->
+<div class="card mb-4 animate__animated animate__fadeInUp">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">関係タイプフィルター</label>
+                <select class="form-select" id="relationTypeFilter">
+                    <option value="">すべての関係</option>
+                    {% for type_key, type_label in relation_types %}
+                        <option value="{{ type_key }}">{{ type_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">組織レベルフィルター</label>
+                <select class="form-select" id="orgLevelFilter">
+                    <option value="">すべてのレベル</option>
+                    <option value="0">部門</option>
+                    <option value="1">部</option>
+                    <option value="2">課</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="showEmptyCells" checked>
+                    <label class="form-check-label" for="showEmptyCells">
+                        空のセルを表示
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="highlightMode">
+                    <label class="form-check-label" for="highlightMode">
+                        ハイライトモード
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <button type="button" class="btn btn-outline-primary" onclick="refreshMatrix()">
+                    <i class="bi bi-arrow-clockwise me-2"></i>更新
+                </button>
+                <button type="button" class="btn btn-outline-success" onclick="exportMatrix()">
+                    <i class="bi bi-download me-2"></i>エクスポート
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Matrix Display -->
+<div class="card animate__animated animate__fadeInUp animate__delay-1s">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-grid-3x3 me-2"></i>関係マトリックス
+            <span class="badge bg-primary ms-2">{{ organizations.count }} × {{ organizations.count }}</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height: 70vh;">
+            <table class="table table-bordered matrix-table mb-0">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th class="matrix-corner">
+                            <div class="d-flex align-items-center justify-content-center">
+                                <i class="bi bi-arrow-down-right"></i>
+                            </div>
+                        </th>
+                        {% for org in organizations %}
+                            <th class="matrix-header text-center" data-org-id="{{ org.id }}">
+                                <div class="org-header">
+                                    <div class="org-icon-small" style="background: {% if org.level == 0 %}#dc3545{% elif org.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
+                                        <i class="bi bi-building text-white"></i>
+                                    </div>
+                                    <div class="org-name">{{ org.name }}</div>
+                                    <small class="org-level">{{ org.get_level_display }}</small>
+                                </div>
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for from_org in organizations %}
+                        <tr>
+                            <th class="matrix-row-header" data-org-id="{{ from_org.id }}">
+                                <div class="org-header">
+                                    <div class="org-icon-small" style="background: {% if from_org.level == 0 %}#dc3545{% elif from_org.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
+                                        <i class="bi bi-building text-white"></i>
+                                    </div>
+                                    <div class="org-name">{{ from_org.name }}</div>
+                                    <small class="org-level">{{ from_org.get_level_display }}</small>
+                                </div>
+                            </th>
+                            {% for to_org in organizations %}
+                                <td class="matrix-cell {% if from_org.id == to_org.id %}matrix-diagonal{% endif %}" 
+                                    data-from="{{ from_org.id }}" 
+                                    data-to="{{ to_org.id }}">
+                                    {% if from_org.id == to_org.id %}
+                                        <div class="diagonal-cell">
+                                            <i class="bi bi-dash-circle text-muted"></i>
+                                        </div>
+                                    {% else %}
+                                        {% for relation in matrix|get_item:from_org.id|get_item:to_org.id %}
+                                            <div class="relation-indicator" 
+                                                 data-relation-id="{{ relation.id }}"
+                                                 data-bs-toggle="tooltip" 
+                                                 title="{{ relation.get_relation_type_display }} (強度: {{ relation.strength }})">
+                                                <div class="relation-type-dot" 
+                                                     style="background-color: {% if relation.relation_type == 'cooperation' %}#007bff{% elif relation.relation_type == 'reporting' %}#28a745{% elif relation.relation_type == 'support' %}#ffc107{% elif relation.relation_type == 'partnership' %}#dc3545{% elif relation.relation_type == 'dependency' %}#6f42c1{% else %}#17a2b8{% endif %};">
+                                                </div>
+                                                <div class="relation-strength">
+                                                    {% for i in "12345"|make_list %}
+                                                        <i class="bi bi-star{% if forloop.counter <= relation.strength %}-fill{% endif %}" style="font-size: 0.6rem;"></i>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% empty %}
+                                            <div class="empty-cell" onclick="createRelation({{ from_org.id }}, {{ to_org.id }})">
+                                                <i class="bi bi-plus-circle text-muted"></i>
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="legend">
+                    <small class="text-muted fw-bold">関係の種類:</small>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background-color: #007bff;"></span>
+                        協力
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background-color: #28a745;"></span>
+                        報告
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background-color: #ffc107;"></span>
+                        サポート
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background-color: #dc3545;"></span>
+                        パートナー
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background-color: #6f42c1;"></span>
+                        依存
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background-color: #17a2b8;"></span>
+                        連絡
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    セルをクリックして関係を追加・編集
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Edit Modal -->
+<div class="modal fade" id="quickEditModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil-square me-2"></i>関係を編集
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickEditForm">
+                    <input type="hidden" id="editRelationId">
+                    <input type="hidden" id="editFromOrg">
+                    <input type="hidden" id="editToOrg">
+                    
+                    <div class="relation-preview mb-3">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <div class="org-preview from-org">
+                                <div class="org-icon-small">
+                                    <i class="bi bi-building"></i>
+                                </div>
+                                <span class="org-name">組織A</span>
+                            </div>
+                            <div class="mx-3">
+                                <i class="bi bi-arrow-right fs-4 text-primary"></i>
+                            </div>
+                            <div class="org-preview to-org">
+                                <div class="org-icon-small">
+                                    <i class="bi bi-building"></i>
+                                </div>
+                                <span class="org-name">組織B</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editRelationType" class="form-label">関係の種類</label>
+                            <select class="form-select" id="editRelationType" required>
+                                {% for type_key, type_label in relation_types %}
+                                    <option value="{{ type_key }}">{{ type_label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editStrength" class="form-label">関係の強さ</label>
+                            <select class="form-select" id="editStrength">
+                                <option value="1">1 - 弱い</option>
+                                <option value="2">2 - やや弱い</option>
+                                <option value="3" selected>3 - 標準</option>
+                                <option value="4">4 - 強い</option>
+                                <option value="5">5 - 非常に強い</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editDescription" class="form-label">説明</label>
+                        <textarea class="form-control" id="editDescription" rows="3" 
+                                  placeholder="関係の詳細を説明してください"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-danger me-auto" id="deleteRelationBtn" style="display: none;">
+                    <i class="bi bi-trash me-2"></i>削除
+                </button>
+                <button type="button" class="btn btn-primary" id="saveRelationBtn">
+                    <i class="bi bi-check-circle me-2"></i>保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Edit Modal -->
+<div class="modal fade" id="bulkEditModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil-square me-2"></i>一括編集
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">編集操作</label>
+                    <select class="form-select" id="bulkOperation">
+                        <option value="update_strength">関係の強さを一括更新</option>
+                        <option value="update_type">関係の種類を一括更新</option>
+                        <option value="delete_type">特定の関係種類を一括削除</option>
+                    </select>
+                </div>
+                
+                <div id="bulkUpdateControls">
+                    <!-- Dynamic content based on selected operation -->
+                </div>
+                
+                <div class="mt-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmBulkEdit">
+                        <label class="form-check-label" for="confirmBulkEdit">
+                            上記の操作を実行することを確認します
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-warning" id="executeBulkEdit" disabled>
+                    <i class="bi bi-lightning me-2"></i>一括実行
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// CSRFトークン取得
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+}
+
+// ツールチップ初期化
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+    
+    // イベントリスナー設定
+    setupEventListeners();
+    
+    // 初期化
+    initializeMatrix();
+});
+
+function setupEventListeners() {
+    // フィルター変更
+    document.getElementById('relationTypeFilter').addEventListener('change', filterMatrix);
+    document.getElementById('orgLevelFilter').addEventListener('change', filterMatrix);
+    document.getElementById('showEmptyCells').addEventListener('change', toggleEmptyCells);
+    document.getElementById('highlightMode').addEventListener('change', toggleHighlightMode);
+    
+    // 関係編集モーダル
+    document.getElementById('saveRelationBtn').addEventListener('click', saveRelation);
+    document.getElementById('deleteRelationBtn').addEventListener('click', deleteRelation);
+    
+    // 一括編集
+    document.getElementById('bulkOperation').addEventListener('change', updateBulkControls);
+    document.getElementById('confirmBulkEdit').addEventListener('change', function() {
+        document.getElementById('executeBulkEdit').disabled = !this.checked;
+    });
+    document.getElementById('executeBulkEdit').addEventListener('click', executeBulkEdit);
+    
+    // 関係インジケーターのクリックイベント
+    document.querySelectorAll('.relation-indicator').forEach(indicator => {
+        indicator.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const relationId = this.dataset.relationId;
+            editRelation(relationId);
+        });
+    });
+}
+
+function initializeMatrix() {
+    // マトリックスの初期化処理
+    console.log('Matrix initialized');
+}
+
+function filterMatrix() {
+    const typeFilter = document.getElementById('relationTypeFilter').value;
+    const levelFilter = document.getElementById('orgLevelFilter').value;
+    
+    document.querySelectorAll('.matrix-cell').forEach(cell => {
+        const indicators = cell.querySelectorAll('.relation-indicator');
+        let hasVisibleRelation = false;
+        
+        indicators.forEach(indicator => {
+            // ここでフィルタリングロジックを実装
+            indicator.style.display = 'block';
+            hasVisibleRelation = true;
+        });
+        
+        if (levelFilter) {
+            const fromOrg = cell.dataset.from;
+            const toOrg = cell.dataset.to;
+            // 組織レベルによるフィルタリング
+        }
+    });
+}
+
+function toggleEmptyCells() {
+    const showEmpty = document.getElementById('showEmptyCells').checked;
+    document.querySelectorAll('.empty-cell').forEach(cell => {
+        cell.style.display = showEmpty ? 'flex' : 'none';
+    });
+}
+
+function toggleHighlightMode() {
+    const highlightMode = document.getElementById('highlightMode').checked;
+    const table = document.querySelector('.matrix-table');
+    
+    if (highlightMode) {
+        table.classList.add('highlight-mode');
+        // ホバーエフェクトを強化
+        document.querySelectorAll('.matrix-cell').forEach(cell => {
+            cell.addEventListener('mouseenter', highlightRowColumn);
+            cell.addEventListener('mouseleave', clearHighlight);
+        });
+    } else {
+        table.classList.remove('highlight-mode');
+        document.querySelectorAll('.matrix-cell').forEach(cell => {
+            cell.removeEventListener('mouseenter', highlightRowColumn);
+            cell.removeEventListener('mouseleave', clearHighlight);
+        });
+    }
+}
+
+function highlightRowColumn(e) {
+    const cell = e.target.closest('.matrix-cell');
+    const fromOrg = cell.dataset.from;
+    const toOrg = cell.dataset.to;
+    
+    // 行と列をハイライト
+    document.querySelectorAll(`[data-from="${fromOrg}"]`).forEach(c => c.classList.add('highlight-row'));
+    document.querySelectorAll(`[data-to="${toOrg}"]`).forEach(c => c.classList.add('highlight-col'));
+    document.querySelectorAll(`[data-org-id="${fromOrg}"]`).forEach(h => h.classList.add('highlight-header'));
+    document.querySelectorAll(`[data-org-id="${toOrg}"]`).forEach(h => h.classList.add('highlight-header'));
+}
+
+function clearHighlight() {
+    document.querySelectorAll('.highlight-row, .highlight-col, .highlight-header').forEach(el => {
+        el.classList.remove('highlight-row', 'highlight-col', 'highlight-header');
+    });
+}
+
+function createRelation(fromOrgId, toOrgId) {
+    // 新しい関係を作成
+    showEditModal(null, fromOrgId, toOrgId);
+}
+
+function editRelation(relationId) {
+    // 既存の関係を編集
+    // ここで関係データを取得してモーダルに表示
+    showEditModal(relationId);
+}
+
+function showEditModal(relationId, fromOrgId = null, toOrgId = null) {
+    const modal = new bootstrap.Modal(document.getElementById('quickEditModal'));
+    const deleteBtn = document.getElementById('deleteRelationBtn');
+    
+    if (relationId) {
+        // 編集モード
+        document.getElementById('editRelationId').value = relationId;
+        deleteBtn.style.display = 'block';
+        // 関係データを取得して入力フィールドに設定
+        loadRelationData(relationId);
+    } else {
+        // 新規作成モード
+        document.getElementById('editRelationId').value = '';
+        document.getElementById('editFromOrg').value = fromOrgId;
+        document.getElementById('editToOrg').value = toOrgId;
+        deleteBtn.style.display = 'none';
+        clearEditForm();
+    }
+    
+    modal.show();
+}
+
+async function loadRelationData(relationId) {
+    try {
+        const response = await fetch(`/api/organization-relations/${relationId}/details/`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const relation = data.relation;
+            document.getElementById('editFromOrg').value = relation.from_organization.id;
+            document.getElementById('editToOrg').value = relation.to_organization.id;
+            document.getElementById('editRelationType').value = relation.relation_type;
+            document.getElementById('editStrength').value = relation.strength;
+            document.getElementById('editDescription').value = relation.description || '';
+            
+            // プレビュー更新
+            updateRelationPreview(relation.from_organization.name, relation.to_organization.name);
+        }
+    } catch (error) {
+        console.error('関係データの取得に失敗:', error);
+    }
+}
+
+function updateRelationPreview(fromOrgName, toOrgName) {
+    document.querySelector('.from-org .org-name').textContent = fromOrgName;
+    document.querySelector('.to-org .org-name').textContent = toOrgName;
+}
+
+function clearEditForm() {
+    document.getElementById('editRelationType').value = 'cooperation';
+    document.getElementById('editStrength').value = '3';
+    document.getElementById('editDescription').value = '';
+}
+
+async function saveRelation() {
+    const relationId = document.getElementById('editRelationId').value;
+    const fromOrgId = document.getElementById('editFromOrg').value;
+    const toOrgId = document.getElementById('editToOrg').value;
+    const relationType = document.getElementById('editRelationType').value;
+    const strength = document.getElementById('editStrength').value;
+    const description = document.getElementById('editDescription').value;
+    
+    const data = {
+        from_organization: fromOrgId,
+        to_organization: toOrgId,
+        relation_type: relationType,
+        strength: parseInt(strength),
+        description: description
+    };
+    
+    try {
+        const url = relationId 
+            ? `/api/organization-relations/${relationId}/update/`
+            : '/api/organization-relations/create/';
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            bootstrap.Modal.getInstance(document.getElementById('quickEditModal')).hide();
+            location.reload(); // マトリックスを更新
+        } else {
+            alert(result.error || '保存に失敗しました');
+        }
+    } catch (error) {
+        console.error('保存エラー:', error);
+        alert('サーバーエラーが発生しました');
+    }
+}
+
+async function deleteRelation() {
+    const relationId = document.getElementById('editRelationId').value;
+    
+    if (!confirm('この関係を削除してもよろしいですか？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/organization-relations/${relationId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            bootstrap.Modal.getInstance(document.getElementById('quickEditModal')).hide();
+            location.reload();
+        } else {
+            alert(result.error || '削除に失敗しました');
+        }
+    } catch (error) {
+        console.error('削除エラー:', error);
+        alert('サーバーエラーが発生しました');
+    }
+}
+
+function updateBulkControls() {
+    const operation = document.getElementById('bulkOperation').value;
+    const container = document.getElementById('bulkUpdateControls');
+    
+    let html = '';
+    
+    switch (operation) {
+        case 'update_strength':
+            html = `
+                <div class="mb-3">
+                    <label class="form-label">新しい強度</label>
+                    <select class="form-select" id="newStrength">
+                        <option value="1">1 - 弱い</option>
+                        <option value="2">2 - やや弱い</option>
+                        <option value="3">3 - 標準</option>
+                        <option value="4">4 - 強い</option>
+                        <option value="5">5 - 非常に強い</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">対象の関係種類</label>
+                    <select class="form-select" id="targetRelationType">
+                        <option value="">すべての関係</option>
+                        {% for type_key, type_label in relation_types %}
+                            <option value="{{ type_key }}">{{ type_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            `;
+            break;
+        case 'update_type':
+            html = `
+                <div class="mb-3">
+                    <label class="form-label">変更前の関係種類</label>
+                    <select class="form-select" id="oldRelationType">
+                        {% for type_key, type_label in relation_types %}
+                            <option value="{{ type_key }}">{{ type_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">変更後の関係種類</label>
+                    <select class="form-select" id="newRelationType">
+                        {% for type_key, type_label in relation_types %}
+                            <option value="{{ type_key }}">{{ type_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            `;
+            break;
+        case 'delete_type':
+            html = `
+                <div class="mb-3">
+                    <label class="form-label">削除する関係種類</label>
+                    <select class="form-select" id="deleteRelationType">
+                        {% for type_key, type_label in relation_types %}
+                            <option value="{{ type_key }}">{{ type_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    この操作は取り消すことができません。
+                </div>
+            `;
+            break;
+    }
+    
+    container.innerHTML = html;
+}
+
+function executeBulkEdit() {
+    // 一括編集の実行
+    const operation = document.getElementById('bulkOperation').value;
+    console.log('Executing bulk operation:', operation);
+    
+    // 実際の実装では、選択された操作に応じてAPIを呼び出す
+    alert('一括編集機能は開発中です');
+}
+
+function refreshMatrix() {
+    location.reload();
+}
+
+function exportMatrix() {
+    const format = prompt('エクスポート形式を選択してください (csv/json):', 'csv');
+    if (format) {
+        window.location.href = `/api/organization-relations/export/?format=${format}`;
+    }
+}
+</script>
+
+<style>
+.matrix-table {
+    font-size: 0.9rem;
+    min-width: 800px;
+}
+
+.matrix-corner {
+    width: 120px;
+    min-width: 120px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    position: sticky;
+    left: 0;
+    z-index: 12;
+}
+
+.matrix-header, .matrix-row-header {
+    width: 100px;
+    min-width: 100px;
+    padding: 8px 4px;
+    vertical-align: middle;
+}
+
+.matrix-row-header {
+    position: sticky;
+    left: 0;
+    background: #f8f9fa;
+    z-index: 11;
+    border-right: 2px solid #dee2e6;
+}
+
+.matrix-cell {
+    width: 100px;
+    min-width: 100px;
+    height: 60px;
+    padding: 4px;
+    text-align: center;
+    vertical-align: middle;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.matrix-cell:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.matrix-diagonal {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+}
+
+.org-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.org-icon-small {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+}
+
+.org-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.1;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.org-level {
+    font-size: 0.65rem;
+    color: #6c757d;
+}
+
+.relation-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    margin-bottom: 2px;
+}
+
+.relation-indicator:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    transform: scale(1.05);
+}
+
+.relation-type-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.relation-strength {
+    display: flex;
+    gap: 1px;
+}
+
+.relation-strength i {
+    color: #ffc107;
+}
+
+.empty-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #dee2e6;
+    transition: color 0.2s ease;
+}
+
+.empty-cell:hover {
+    color: #007bff;
+}
+
+.diagonal-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+/* ハイライトモード */
+.highlight-mode .highlight-row {
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+.highlight-mode .highlight-col {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.highlight-mode .highlight-header {
+    background-color: rgba(255, 193, 7, 0.2);
+}
+
+/* 凡例 */
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.85rem;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+/* モーダル内のプレビュー */
+.relation-preview {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.org-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.org-preview .org-icon-small {
+    width: 40px;
+    height: 40px;
+    background-color: #007bff;
+}
+
+.org-preview .org-name {
+    font-weight: 600;
+    color: #495057;
+    max-width: none;
+    white-space: normal;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .matrix-table {
+        font-size: 0.8rem;
+    }
+    
+    .matrix-cell {
+        width: 80px;
+        min-width: 80px;
+        height: 50px;
+    }
+    
+    .matrix-corner, .matrix-row-header {
+        width: 100px;
+        min-width: 100px;
+    }
+    
+    .org-name {
+        font-size: 0.7rem;
+        max-width: 70px;
+    }
+}
+</style>
+{% endblock %}
