@@ -1,9 +1,15 @@
 <!-- templates/people/tag_list.html -->
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}タグ管理 - {{ block.super }}{% endblock %}
 
 {% block content %}
+<!-- CSRFトークンを隠しフィールドとして追加 -->
+<form style="display: none;">
+    {% csrf_token %}
+</form>
+
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-4 pb-3 mb-4">
     <div>
         <h1 class="h2 animate__animated animate__fadeInDown">
@@ -232,7 +238,7 @@
                                 </div>
                                 <div>
                                     <h5 class="card-title mb-0 fw-bold">{{ tag.name }}</h5>
-                                    <small class="text-muted">作成: {{ tag.created_at|date:"Y/m/d" }}</small>
+                                    <small class="text-muted">作成: {{ tag.created_at|date:"Y/m/d"|default:"N/A" }}</small>
                                 </div>
                             </div>
                         </div>
@@ -504,6 +510,16 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // CSRF トークンを取得する関数
+    function getCsrfToken() {
+        const token = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        if (!token) {
+            console.error('CSRF token not found');
+            return '';
+        }
+        return token;
+    }
+
     // Initialize counters
     animateStats();
     
@@ -622,7 +638,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         tagPreview.textContent = name;
         tagPreview.style.backgroundColor = color;
-        tagPreview.innerHTML = `<i class="bi bi-tag me-1"></i>${name}`;
+        tagPreview.innerHTML = '<i class="bi bi-tag me-1"></i>' + name;
     }
     
     tagNameInput.addEventListener('input', updatePreview);
@@ -641,8 +657,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Create tag
-    document.getElementById('createTagBtn').addEventListener('click', function() {
+    // Create tag - サーバーに送信
+    document.getElementById('createTagBtn').addEventListener('click', async function() {
+        const submitBtn = this;
+        const originalText = submitBtn.innerHTML;
+        
         const formData = {
             name: tagNameInput.value.trim(),
             color: tagColorInput.value,
@@ -650,28 +669,68 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         if (!formData.name) {
-            alert('タグ名は必須です。');
+            showErrorMessage('タグ名は必須です。');
             return;
         }
         
-        // Here you would typically make an AJAX request
-        console.log('Creating tag:', formData);
+        // ローディング状態
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>作成中...';
         
-        // For demo, add the tag to the grid
-        addTagToGrid(formData);
-        
-        // Close modal and reset form
-        bootstrap.Modal.getInstance(document.getElementById('createTagModal')).hide();
-        createTagForm.reset();
-        tagColorInput.value = '#007bff';
-        updatePreview();
-        
-        showSuccessMessage(`タグ「${formData.name}」を作成しました。`);
+        try {
+            const csrfToken = getCsrfToken();
+            console.log('Sending request with CSRF token:', csrfToken);
+            
+            const response = await fetch('/api/tags/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+            }
+            
+            const result = await response.json();
+            console.log('Response data:', result);
+            
+            if (result.success) {
+                // タグをグリッドに追加
+                addTagToGrid(result.tag);
+                
+                // モーダルを閉じてフォームをリセット
+                bootstrap.Modal.getInstance(document.getElementById('createTagModal')).hide();
+                createTagForm.reset();
+                tagColorInput.value = '#007bff';
+                updatePreview();
+                
+                showSuccessMessage('タグ「' + result.tag.name + '」を作成しました。');
+                
+                // 統計を更新
+                updateStatsAfterCreate();
+                
+            } else {
+                showErrorMessage(result.error || 'タグの作成に失敗しました。');
+            }
+            
+        } catch (error) {
+            console.error('Error creating tag:', error);
+            showErrorMessage('サーバーエラーが発生しました: ' + error.message);
+        } finally {
+            // ボタンを元に戻す
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
     });
     
     function addTagToGrid(tagData) {
         const tagsGrid = document.getElementById('tagsGrid');
-        const newTagId = `tag_${Date.now()}`;
+        const newTagId = 'tag_' + tagData.id;
         
         const tagHTML = `
             <div class="col-md-6 col-lg-4 col-xl-3 mb-4 tag-item animate__animated animate__bounceIn" 
@@ -684,7 +743,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         <div class="position-absolute top-0 start-0 m-3">
                             <div class="form-check">
-                                <input class="form-check-input tag-checkbox" type="checkbox" value="${newTagId}" id="${newTagId}">
+                                <input class="form-check-input tag-checkbox" type="checkbox" value="${tagData.id}" id="${newTagId}">
                                 <label class="form-check-label" for="${newTagId}"></label>
                             </div>
                         </div>
@@ -696,7 +755,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                                 <div>
                                     <h5 class="card-title mb-0 fw-bold">${tagData.name}</h5>
-                                    <small class="text-muted">作成: 今日</small>
+                                    <small class="text-muted">作成: ${tagData.created_at}</small>
                                 </div>
                             </div>
                         </div>
@@ -751,12 +810,27 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         <div class="tag-actions d-flex justify-content-between align-items-center">
                             <div class="btn-group btn-group-sm">
-                                <button type="button" class="btn btn-outline-primary">
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editTagModal" data-tag-id="${tagData.id}">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button type="button" class="btn btn-outline-success">
+                                <button type="button" class="btn btn-outline-success" onclick="filterByTag('${tagData.id}')">
                                     <i class="bi bi-funnel"></i>
                                 </button>
+                                <button type="button" class="btn btn-outline-info" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="duplicateTag('${tagData.id}')">
+                                        <i class="bi bi-files me-2"></i>複製
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="exportTag('${tagData.id}')">
+                                        <i class="bi bi-download me-2"></i>エクスポート
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteTag('${tagData.id}')">
+                                        <i class="bi bi-trash me-2"></i>削除
+                                    </a></li>
+                                </ul>
                             </div>
                             
                             <div class="usage-indicator">
@@ -773,6 +847,23 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add event listener to new checkbox
         const newCheckbox = document.getElementById(newTagId);
         newCheckbox.addEventListener('change', updateBulkSelection);
+        
+        // Add hover effect to new card
+        const newCard = newCheckbox.closest('.tag-card');
+        newCard.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px) scale(1.02)';
+            this.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        });
+        
+        newCard.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    }
+    
+    function updateStatsAfterCreate() {
+        const totalTagsElement = document.querySelector('.stats-card h2');
+        const currentCount = parseInt(totalTagsElement.textContent);
+        totalTagsElement.textContent = currentCount + 1;
     }
     
     function showSuccessMessage(message) {
@@ -781,6 +872,19 @@ document.addEventListener('DOMContentLoaded', function() {
         alert.style.zIndex = '9999';
         alert.innerHTML = `
             <i class="bi bi-check-circle me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alert);
+        
+        setTimeout(() => alert.remove(), 5000);
+    }
+    
+    function showErrorMessage(message) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 end-0 m-3 animate__animated animate__slideInRight';
+        alert.style.zIndex = '9999';
+        alert.innerHTML = `
+            <i class="bi bi-exclamation-triangle me-2"></i>${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
         document.body.appendChild(alert);
@@ -832,36 +936,88 @@ document.addEventListener('DOMContentLoaded', function() {
             this.style.transform = 'translateY(0) scale(1)';
         });
     });
+    
+    // Edit tag modal handling
+    document.addEventListener('click', async function(e) {
+        if (e.target.closest('[data-bs-target="#editTagModal"]')) {
+            const button = e.target.closest('[data-bs-target="#editTagModal"]');
+            const tagId = button.dataset.tagId;
+            
+            try {
+                const response = await fetch('/api/tags/' + tagId + '/details/');
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Populate edit form
+                    populateEditForm(result.tag);
+                }
+            } catch (error) {
+                console.error('Error loading tag details:', error);
+                showErrorMessage('タグ情報の読み込みに失敗しました。');
+            }
+        }
+    });
+    
+    function populateEditForm(tag) {
+        // Edit form population logic would go here
+        console.log('Edit tag:', tag);
+    }
 });
 
 // Global functions for tag actions
+async function deleteTag(tagId) {
+    if (!confirm('このタグを削除してもよろしいですか？関連付けられたデータも失われます。')) {
+        return;
+    }
+    
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        const response = await fetch('/api/tags/' + tagId + '/delete/', {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Remove from UI
+            const tagElement = document.querySelector('input[value="' + tagId + '"]')?.closest('.tag-item');
+            if (tagElement) {
+                tagElement.classList.add('animate__animated', 'animate__fadeOut');
+                setTimeout(() => {
+                    tagElement.remove();
+                    // Update stats
+                    const totalTagsElement = document.querySelector('.stats-card h2');
+                    const currentCount = parseInt(totalTagsElement.textContent);
+                    totalTagsElement.textContent = currentCount - 1;
+                }, 500);
+            }
+            
+            // Show success message function would be here
+            console.log('Tag deleted successfully');
+        } else {
+            alert(result.error || 'タグの削除に失敗しました。');
+        }
+        
+    } catch (error) {
+        console.error('Error deleting tag:', error);
+        alert('サーバーエラーが発生しました。');
+    }
+}
+
 function filterByTag(tagId) {
     console.log('Filtering by tag:', tagId);
-    // Implement tag filtering logic
+    window.location.href = '/people/?tag=' + tagId;
 }
 
 function duplicateTag(tagId) {
     console.log('Duplicating tag:', tagId);
-    // Implement tag duplication logic
 }
 
 function exportTag(tagId) {
     console.log('Exporting tag:', tagId);
-    // Implement tag export logic
-}
-
-function deleteTag(tagId) {
-    if (confirm('このタグを削除してもよろしいですか？')) {
-        console.log('Deleting tag:', tagId);
-        // Implement tag deletion logic
-        
-        // Remove from UI
-        const tagElement = document.querySelector(`[data-tag-id="${tagId}"]`)?.closest('.tag-item');
-        if (tagElement) {
-            tagElement.classList.add('animate__animated', 'animate__fadeOut');
-            setTimeout(() => tagElement.remove(), 500);
-        }
-    }
 }
 </script>
 
@@ -958,12 +1114,10 @@ function deleteTag(tagId) {
     animation-fill-mode: both;
 }
 
-/* Bulk action bar animation */
 #bulkActionBar {
     animation-fill-mode: both;
 }
 
-/* Stats card enhancements */
 .stats-card::before {
     content: '';
     position: absolute;

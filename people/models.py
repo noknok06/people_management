@@ -9,15 +9,22 @@ class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name="タグ名")
     color = models.CharField(max_length=7, default="#007bff", verbose_name="色")
     description = models.TextField(blank=True, verbose_name="説明")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="作成日時")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新日時")
     
     class Meta:
         verbose_name = "タグ"
         verbose_name_plural = "タグ"
+        ordering = ['name']
     
     def __str__(self):
         return self.name
+    
+    def get_absolute_url(self):
+        return reverse('tag_list')
 
 
+# 残りのモデルは既存のまま
 class Organization(models.Model):
     """組織モデル - 3階層構造（部門→部→課）"""
     LEVEL_CHOICES = [

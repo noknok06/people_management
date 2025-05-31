@@ -13,7 +13,7 @@ class TagAdmin(admin.ModelAdmin):
     list_display = ['name', 'color_preview', 'person_count', 'org_relation_count']
     list_filter = ['color']
     search_fields = ['name', 'description']
-    ordering = ['name']
+    ordering = ['-created_at']  # 新しい順に表示
     
     def color_preview(self, obj):
         return mark_safe(

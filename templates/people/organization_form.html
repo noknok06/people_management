@@ -30,9 +30,16 @@
         </p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{% url 'organization_list' %}" class="btn btn-outline-secondary animate__animated animate__fadeInRight">
-            <i class="bi bi-arrow-left me-2"></i> 一覧に戻る
-        </a>
+        <div class="btn-group">
+            {% if object %}
+                <a href="{% url 'organization_detail' object.pk %}" class="btn btn-outline-info animate__animated animate__fadeInRight">
+                    <i class="bi bi-eye me-2"></i> 詳細表示
+                </a>
+            {% endif %}
+            <a href="{% url 'organization_list' %}" class="btn btn-outline-secondary animate__animated animate__fadeInRight {% if object %}animate__delay-1s{% endif %}">
+                <i class="bi bi-arrow-left me-2"></i> 一覧に戻る
+            </a>
+        </div>
     </div>
 </div>
 
@@ -246,20 +253,27 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Form Actions -->
             <div class="card animate__animated animate__fadeInUp animate__delay-3s">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="createChildOrgs">
-                            <label class="form-check-label" for="createChildOrgs">
-                                子組織のテンプレートも同時作成
-                            </label>
+                            {% if not object %}
+                                <input class="form-check-input" type="checkbox" id="createChildOrgs">
+                                <label class="form-check-label" for="createChildOrgs">
+                                    子組織のテンプレートも同時作成
+                                </label>
+                            {% else %}
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    最終更新: {{ object.updated_at|date:"Y年m月d日 H:i" }}
+                                </small>
+                            {% endif %}
                         </div>
                         
                         <div class="btn-group">
-                            <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                            <button type="submit" class="btn btn-{% if object %}warning{% else %}success{% endif %} btn-lg" id="submitBtn">
                                 {% if object %}
                                     <i class="bi bi-check-circle me-2"></i>更新する
                                 {% else %}
@@ -267,17 +281,26 @@
                                 {% endif %}
                             </button>
                             
-                            <button type="button" class="btn btn-outline-success dropdown-toggle dropdown-toggle-split btn-lg" 
+                            <button type="button" class="btn btn-outline-{% if object %}warning{% else %}success{% endif %} dropdown-toggle dropdown-toggle-split btn-lg" 
                                     data-bs-toggle="dropdown">
                                 <span class="visually-hidden">その他のオプション</span>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><button class="dropdown-item" type="button" id="saveAndAddAnother">
-                                    <i class="bi bi-plus-square me-2"></i>保存して続けて作成
-                                </button></li>
-                                <li><button class="dropdown-item" type="button" id="saveAndAddChild">
-                                    <i class="bi bi-diagram-3 me-2"></i>保存して子組織を作成
-                                </button></li>
+                                {% if object %}
+                                    <li><button class="dropdown-item" type="button" id="saveAndContinue">
+                                        <i class="bi bi-check-circle me-2"></i>更新して編集を続ける
+                                    </button></li>
+                                    <li><button class="dropdown-item" type="button" id="saveAndAddChild">
+                                        <i class="bi bi-diagram-3 me-2"></i>更新して子組織を作成
+                                    </button></li>
+                                {% else %}
+                                    <li><button class="dropdown-item" type="button" id="saveAndAddAnother">
+                                        <i class="bi bi-plus-square me-2"></i>保存して続けて作成
+                                    </button></li>
+                                    <li><button class="dropdown-item" type="button" id="saveAndAddChild">
+                                        <i class="bi bi-diagram-3 me-2"></i>保存して子組織を作成
+                                    </button></li>
+                                {% endif %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li><button class="dropdown-item" type="button" id="saveAsDraft">
                                     <i class="bi bi-file-earmark me-2"></i>下書きとして保存
@@ -295,6 +318,9 @@
                                 <a href="{% url 'organization_detail' object.pk %}" class="btn btn-outline-info">
                                     <i class="bi bi-eye me-2"></i>詳細表示
                                 </a>
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal">
+                                    <i class="bi bi-trash me-2"></i>削除
+                                </button>
                             {% endif %}
                             <button type="button" class="btn btn-outline-warning" id="previewBtn">
                                 <i class="bi bi-eye-slash me-2"></i>プレビュー
@@ -303,6 +329,38 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Delete Confirmation Modal (編集時のみ表示) -->
+            {% if object %}
+            <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title text-danger">
+                                <i class="bi bi-exclamation-triangle me-2"></i>削除の確認
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>組織「<strong>{{ object.name }}</strong>」を削除しますか？</p>
+                            
+                            <div class="alert alert-warning">
+                                <small>
+                                    <strong>注意:</strong> メンバーや子組織が存在する場合は削除できません。
+                                    詳細な削除確認は専用ページで行われます。
+                                </small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                            <a href="{% url 'organization_delete' object.pk %}" class="btn btn-danger">
+                                <i class="bi bi-trash me-2"></i>削除ページへ
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </form>
     </div>
     

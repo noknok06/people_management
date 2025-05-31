@@ -27,11 +27,15 @@
     <div class="btn-toolbar mb-2 mb-md-0">
         {% if user.is_authenticated %}
             <div class="btn-group me-2 animate__animated animate__fadeInRight">
-                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
-                    <i class="bi bi-gear-fill me-2"></i> アクション
+                <a href="{% url 'organization_edit' organization.pk %}" class="btn btn-primary">
+                    <i class="bi bi-pencil-fill me-2"></i>編集
+                </a>
+                <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" 
+                        data-bs-toggle="dropdown">
+                    <span class="visually-hidden">その他のオプション</span>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#">
+                    <li><a class="dropdown-item" href="{% url 'organization_edit' organization.pk %}">
                         <i class="bi bi-pencil me-2"></i>組織情報を編集
                     </a></li>
                     <li><a class="dropdown-item" href="{% url 'person_create' %}">
@@ -47,13 +51,17 @@
                     <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#exportModal">
                         <i class="bi bi-download me-2"></i>データをエクスポート
                     </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                        <i class="bi bi-trash me-2"></i>組織を削除
+                    </a></li>
                 </ul>
             </div>
             <a href="{% url 'organization_list' %}" class="btn btn-outline-secondary animate__animated animate__fadeInRight animate__delay-1s">
                 <i class="bi bi-arrow-left me-2"></i> 一覧に戻る
             </a>
         {% endif %}
-    </div>
+    </div>    
 </div>
 
 <div class="row">
@@ -635,6 +643,74 @@
         </div>
     </div>
 </div>
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>組織削除の確認
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>警告:</strong> この操作は元に戻すことができません。
+                </div>
+                
+                <p><strong>「{{ organization.name }}」</strong>を削除しようとしています。</p>
+                
+                <div class="deletion-checks">
+                    <div class="check-item mb-2">
+                        <i class="bi bi-people me-2 {% if organization.members.count > 0 %}text-danger{% else %}text-success{% endif %}"></i>
+                        <span>メンバー数: {{ organization.members.count }}人</span>
+                        {% if organization.members.count > 0 %}
+                            <span class="text-danger small">（削除前にメンバーを移動してください）</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="check-item mb-2">
+                        <i class="bi bi-diagram-3 me-2 {% if organization.children.count > 0 %}text-danger{% else %}text-success{% endif %}"></i>
+                        <span>子組織数: {{ organization.children.count }}個</span>
+                        {% if organization.children.count > 0 %}
+                            <span class="text-danger small">（削除前に子組織を移動してください）</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="check-item">
+                        <i class="bi bi-share me-2 text-info"></i>
+                        <span>組織関係: {{ outgoing_relations.count|add:incoming_relations.count }}件</span>
+                        <span class="text-muted small">（自動的に削除されます）</span>
+                    </div>
+                </div>
+                
+                {% if organization.members.count > 0 or organization.children.count > 0 %}
+                    <div class="alert alert-danger mt-3">
+                        <i class="bi bi-x-circle me-2"></i>
+                        この組織は現在削除できません。上記の問題を解決してから再度お試しください。
+                    </div>
+                {% else %}
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="confirmDelete">
+                        <label class="form-check-label" for="confirmDelete">
+                            上記の内容を理解し、削除を実行することを確認します
+                        </label>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                {% if organization.members.count == 0 and organization.children.count == 0 %}
+                    <a href="{% url 'organization_delete' organization.pk %}" 
+                       class="btn btn-danger" id="confirmDeleteBtn" style="display: none;">
+                        <i class="bi bi-trash me-2"></i>削除実行
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -814,6 +890,19 @@ document.addEventListener('DOMContentLoaded', function() {
             alert.remove();
         }, 5000);
     });
+});
+</script>
+<script>
+// 削除確認チェックボックスの処理
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmCheckbox = document.getElementById('confirmDelete');
+    const deleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    if (confirmCheckbox && deleteBtn) {
+        confirmCheckbox.addEventListener('change', function() {
+            deleteBtn.style.display = this.checked ? 'inline-block' : 'none';
+        });
+    }
 });
 </script>
 

@@ -1,13 +1,20 @@
 # people/views.py
+
 from django.shortcuts import render, get_object_or_404
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.db.models import Q, Count
 from django.http import JsonResponse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required
+import json
+
+# 既存のインポートに追加
 from .models import Person, Organization, Tag, OrganizationRelation, PersonRelation
 from .forms import PersonForm, OrganizationForm, PersonSearchForm
-import json
 
 
 class HomeView(ListView):
@@ -356,3 +363,462 @@ class TagListView(ListView):
             org_relation_count=Count('organizationrelation'),
             person_relation_count=Count('personrelation')
         ).order_by('name')
+
+
+class TagCreateView(LoginRequiredMixin, CreateView):
+    """タグ作成ビュー"""
+    model = Tag
+    fields = ['name', 'color', 'description']
+    template_name = 'people/tag_form.html'
+    success_url = reverse_lazy('tag_list')
+
+
+class TagUpdateView(LoginRequiredMixin, UpdateView):
+    """タグ更新ビュー"""
+    model = Tag
+    fields = ['name', 'color', 'description']
+    template_name = 'people/tag_form.html'
+    success_url = reverse_lazy('tag_list')
+
+
+@login_required
+def create_tag_ajax(request):
+    """AJAX タグ作成"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POSTメソッドが必要です'}, status=405)
+    
+    try:
+        # JSONデータを取得
+        data = json.loads(request.body)
+        
+        # データバリデーション
+        name = data.get('name', '').strip()
+        color = data.get('color', '#007bff')
+        description = data.get('description', '').strip()
+        
+        if not name:
+            return JsonResponse({'success': False, 'error': 'タグ名は必須です'})
+        
+        # 同名タグの重複チェック
+        if Tag.objects.filter(name=name).exists():
+            return JsonResponse({'success': False, 'error': 'そのタグ名は既に存在します'})
+        
+        # タグ作成
+        tag = Tag.objects.create(
+            name=name,
+            color=color,
+            description=description
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'tag': {
+                'id': tag.id,
+                'name': tag.name,
+                'color': tag.color,
+                'description': tag.description,
+                'created_at': tag.created_at.strftime('%Y/%m/%d') if hasattr(tag, 'created_at') else 'N/A'
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': '無効なJSONデータです'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'サーバーエラー: {str(e)}'}, status=500)
+
+
+@login_required
+def update_tag_ajax(request, tag_id):
+    """AJAX タグ更新"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POSTメソッドが必要です'}, status=405)
+    
+    try:
+        tag = get_object_or_404(Tag, id=tag_id)
+        data = json.loads(request.body)
+        
+        # データ更新
+        tag.name = data.get('name', tag.name).strip()
+        tag.color = data.get('color', tag.color)
+        tag.description = data.get('description', tag.description).strip()
+        
+        if not tag.name:
+            return JsonResponse({'success': False, 'error': 'タグ名は必須です'})
+        
+        # 同名タグの重複チェック（自分以外）
+        if Tag.objects.filter(name=tag.name).exclude(id=tag.id).exists():
+            return JsonResponse({'success': False, 'error': 'そのタグ名は既に存在します'})
+        
+        tag.save()
+        
+        return JsonResponse({
+            'success': True,
+            'tag': {
+                'id': tag.id,
+                'name': tag.name,
+                'color': tag.color,
+                'description': tag.description
+            }
+        })
+        
+    except Tag.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'タグが見つかりません'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': '無効なJSONデータです'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'サーバーエラー: {str(e)}'}, status=500)
+
+
+@login_required
+def delete_tag_ajax(request, tag_id):
+    """AJAX タグ削除"""
+    if request.method != 'DELETE':
+        return JsonResponse({'success': False, 'error': 'DELETEメソッドが必要です'}, status=405)
+    
+    try:
+        tag = get_object_or_404(Tag, id=tag_id)
+        
+        # 使用中のタグかチェック
+        person_count = tag.person_set.count()
+        org_relation_count = tag.organizationrelation_set.count()
+        person_relation_count = tag.personrelation_set.count()
+        
+        if person_count > 0 or org_relation_count > 0 or person_relation_count > 0:
+            return JsonResponse({
+                'success': False, 
+                'error': f'このタグは現在使用中です（人物: {person_count}, 組織関係: {org_relation_count}, 人物関係: {person_relation_count}）'
+            })
+        
+        tag.delete()
+        
+        return JsonResponse({'success': True, 'message': 'タグを削除しました'})
+        
+    except Tag.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'タグが見つかりません'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'サーバーエラー: {str(e)}'}, status=500)
+
+
+def get_tag_details(request, tag_id):
+    """タグ詳細取得（編集モーダル用）"""
+    try:
+        tag = get_object_or_404(Tag, id=tag_id)
+        
+        return JsonResponse({
+            'success': True,
+            'tag': {
+                'id': tag.id,
+                'name': tag.name,
+                'color': tag.color,
+                'description': tag.description,
+                'person_count': tag.person_set.count(),
+                'org_relation_count': tag.organizationrelation_set.count(),
+                'person_relation_count': tag.personrelation_set.count()
+            }
+        })
+        
+    except Tag.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'タグが見つかりません'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'サーバーエラー: {str(e)}'}, status=500)
+
+
+# 既存のTagListViewを更新
+class TagListView(ListView):
+    """タグ一覧ビュー"""
+    model = Tag
+    template_name = 'people/tag_list.html'
+    context_object_name = 'tags'
+    
+    def get_queryset(self):
+        return Tag.objects.annotate(
+            person_count=Count('person'),
+            org_relation_count=Count('organizationrelation'),
+            person_relation_count=Count('personrelation')
+        ).order_by('name')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # 今月作成された新しいタグの数を計算
+        from django.utils import timezone
+        from datetime import datetime
+        
+        try:
+            now = timezone.now()
+            first_day_of_month = datetime(now.year, now.month, 1, tzinfo=now.tzinfo)
+            
+            context['new_tags_this_month'] = Tag.objects.filter(
+                created_at__gte=first_day_of_month
+            ).count() if hasattr(Tag, 'created_at') else 0
+        except:
+            context['new_tags_this_month'] = 0
+        
+        return context
+
+class OrganizationUpdateView(LoginRequiredMixin, UpdateView):
+    """組織更新ビュー"""
+    model = Organization
+    form_class = OrganizationForm
+    template_name = 'people/organization_form.html'
+    
+    def get_success_url(self):
+        return reverse_lazy('organization_detail', kwargs={'pk': self.object.pk})
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_edit'] = True
+        return context
+
+
+class OrganizationDeleteView(LoginRequiredMixin, DeleteView):
+    """組織削除ビュー"""
+    model = Organization
+    template_name = 'people/organization_confirm_delete.html'
+    success_url = reverse_lazy('organization_list')
+    
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        
+        # 子組織があるかチェック
+        if self.object.children.exists():
+            messages.error(request, 'この組織には子組織が存在するため、削除できません。先に子組織を削除または移動してください。')
+            return redirect('organization_detail', pk=self.object.pk)
+        
+        # メンバーがいるかチェック
+        if self.object.members.exists():
+            messages.error(request, 'この組織にはメンバーが所属しているため、削除できません。先にメンバーを他の組織に移動してください。')
+            return redirect('organization_detail', pk=self.object.pk)
+        
+        success_url = self.get_success_url()
+        self.object.delete()
+        messages.success(request, f'組織「{self.object.name}」を削除しました。')
+        return redirect(success_url)
+
+class OrganizationRelationListView(ListView):
+    """組織関係一覧ビュー"""
+    model = OrganizationRelation
+    template_name = 'people/organization_relation_list.html'
+    context_object_name = 'relations'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = OrganizationRelation.objects.select_related(
+            'from_organization', 'to_organization'
+        ).prefetch_related('tags').order_by('-created_at')
+        
+        # 検索機能
+        search_query = self.request.GET.get('search')
+        if search_query:
+            queryset = queryset.filter(
+                Q(from_organization__name__icontains=search_query) |
+                Q(to_organization__name__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+        
+        # 関係タイプフィルタ
+        relation_type = self.request.GET.get('relation_type')
+        if relation_type:
+            queryset = queryset.filter(relation_type=relation_type)
+            
+        # 強度フィルタ
+        strength = self.request.GET.get('strength')
+        if strength:
+            queryset = queryset.filter(strength=strength)
+            
+        # タグフィルタ
+        tag_filter = self.request.GET.get('tag')
+        if tag_filter:
+            queryset = queryset.filter(tags__id=tag_filter)
+        
+        return queryset.distinct()
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['relation_types'] = OrganizationRelation.RELATION_TYPES
+        context['strength_choices'] = [(i, str(i)) for i in range(1, 6)]
+        context['tags'] = Tag.objects.all()
+        context['current_search'] = self.request.GET.get('search', '')
+        context['current_relation_type'] = self.request.GET.get('relation_type', '')
+        context['current_strength'] = self.request.GET.get('strength', '')
+        context['current_tag'] = self.request.GET.get('tag', '')
+        
+        # 統計情報
+        context['total_relations'] = OrganizationRelation.objects.count()
+        context['relation_type_stats'] = OrganizationRelation.objects.values(
+            'relation_type'
+        ).annotate(count=Count('id')).order_by('-count')
+        
+        return context
+
+
+class OrganizationRelationDetailView(DetailView):
+    """組織関係詳細ビュー"""
+    model = OrganizationRelation
+    template_name = 'people/organization_relation_detail.html'
+    context_object_name = 'relation'
+
+
+class OrganizationRelationCreateView(LoginRequiredMixin, CreateView):
+    """組織関係作成ビュー"""
+    model = OrganizationRelation
+    form_class = OrganizationRelationForm
+    template_name = 'people/organization_relation_form.html'
+    success_url = reverse_lazy('organization_relation_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['organizations'] = Organization.objects.all().order_by('level', 'name')
+        context['tags'] = Tag.objects.all()
+        return context
+    
+    def form_valid(self, form):
+        messages.success(self.request, '組織関係を作成しました。')
+        return super().form_valid(form)
+
+
+class OrganizationRelationUpdateView(LoginRequiredMixin, UpdateView):
+    """組織関係更新ビュー"""
+    model = OrganizationRelation
+    form_class = OrganizationRelationForm
+    template_name = 'people/organization_relation_form.html'
+    
+    def get_success_url(self):
+        return reverse_lazy('organization_relation_detail', kwargs={'pk': self.object.pk})
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['organizations'] = Organization.objects.all().order_by('level', 'name')
+        context['tags'] = Tag.objects.all()
+        context['is_edit'] = True
+        return context
+    
+    def form_valid(self, form):
+        messages.success(self.request, '組織関係を更新しました。')
+        return super().form_valid(form)
+
+
+class OrganizationRelationDeleteView(LoginRequiredMixin, DeleteView):
+    """組織関係削除ビュー"""
+    model = OrganizationRelation
+    template_name = 'people/organization_relation_confirm_delete.html'
+    success_url = reverse_lazy('organization_relation_list')
+    
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        success_url = self.get_success_url()
+        self.object.delete()
+        messages.success(request, f'組織関係「{self.object}」を削除しました。')
+        return redirect(success_url)
+
+
+@login_required
+def create_organization_relation_ajax(request):
+    """AJAX 組織関係作成"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POSTメソッドが必要です'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        
+        from_org_id = data.get('from_organization')
+        to_org_id = data.get('to_organization')
+        relation_type = data.get('relation_type')
+        description = data.get('description', '').strip()
+        strength = data.get('strength', 1)
+        
+        # バリデーション
+        if not from_org_id or not to_org_id:
+            return JsonResponse({'success': False, 'error': '組織を選択してください'})
+            
+        if from_org_id == to_org_id:
+            return JsonResponse({'success': False, 'error': '同じ組織同士の関係は作成できません'})
+        
+        # 組織の存在確認
+        try:
+            from_org = Organization.objects.get(id=from_org_id)
+            to_org = Organization.objects.get(id=to_org_id)
+        except Organization.DoesNotExist:
+            return JsonResponse({'success': False, 'error': '指定された組織が見つかりません'})
+        
+        # 重複チェック
+        if OrganizationRelation.objects.filter(
+            from_organization=from_org,
+            to_organization=to_org,
+            relation_type=relation_type
+        ).exists():
+            return JsonResponse({'success': False, 'error': '同じ関係が既に存在します'})
+        
+        # 関係作成
+        relation = OrganizationRelation.objects.create(
+            from_organization=from_org,
+            to_organization=to_org,
+            relation_type=relation_type,
+            description=description,
+            strength=strength
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'relation': {
+                'id': relation.id,
+                'from_organization': relation.from_organization.name,
+                'to_organization': relation.to_organization.name,
+                'relation_type': relation.get_relation_type_display(),
+                'strength': relation.strength,
+                'description': relation.description
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': '無効なJSONデータです'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'サーバーエラー: {str(e)}'}, status=500)
+
+
+@login_required
+def delete_organization_relation_ajax(request, relation_id):
+    """AJAX 組織関係削除"""
+    if request.method != 'DELETE':
+        return JsonResponse({'success': False, 'error': 'DELETEメソッドが必要です'}, status=405)
+    
+    try:
+        relation = get_object_or_404(OrganizationRelation, id=relation_id)
+        relation.delete()
+        
+        return JsonResponse({'success': True, 'message': '組織関係を削除しました'})
+        
+    except OrganizationRelation.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '組織関係が見つかりません'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'サーバーエラー: {str(e)}'}, status=500)
+
+
+def organization_relation_matrix_view(request):
+    """組織関係マトリックス表示"""
+    organizations = Organization.objects.all().order_by('level', 'name')
+    relations = OrganizationRelation.objects.select_related(
+        'from_organization', 'to_organization'
+    ).all()
+    
+    # マトリックス用のデータ構造を作成
+    matrix = {}
+    for org in organizations:
+        matrix[org.id] = {}
+        for other_org in organizations:
+            matrix[org.id][other_org.id] = []
+    
+    # 関係をマトリックスに配置
+    for relation in relations:
+        from_id = relation.from_organization.id
+        to_id = relation.to_organization.id
+        matrix[from_id][to_id].append(relation)
+    
+    context = {
+        'organizations': organizations,
+        'matrix': matrix,
+        'relations': relations,
+        'relation_types': OrganizationRelation.RELATION_TYPES,
+    }
+    
+    return render(request, 'people/organization_relation_matrix.html', context)        
