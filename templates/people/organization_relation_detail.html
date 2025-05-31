@@ -1,0 +1,674 @@
+<!-- templates/people/organization_relation_detail.html -->
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}{{ relation.from_organization.name }} → {{ relation.to_organization.name }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-4 pb-3 mb-4">
+    <div class="animate__animated animate__fadeInLeft">
+        <h1 class="h2 d-flex align-items-center">
+            <i class="bi bi-diagram-2-fill text-primary me-3 fs-1"></i>
+            組織関係詳細
+        </h1>
+        <p class="text-muted">{{ relation.from_organization.name }} → {{ relation.to_organization.name }}</p>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        {% if user.is_authenticated %}
+            <div class="btn-group me-2 animate__animated animate__fadeInRight">
+                <a href="{% url 'organization_relation_edit' relation.pk %}" class="btn btn-primary">
+                    <i class="bi bi-pencil-fill me-2"></i>編集
+                </a>
+                <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" 
+                        data-bs-toggle="dropdown">
+                    <span class="visually-hidden">その他のオプション</span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'organization_relation_edit' relation.pk %}">
+                        <i class="bi bi-pencil me-2"></i>関係を編集
+                    </a></li>
+                    <li><a class="dropdown-item" href="{% url 'organization_relation_create' %}">
+                        <i class="bi bi-plus-circle me-2"></i>新しい関係を追加
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'relationship_graph' %}">
+                        <i class="bi bi-share me-2"></i>関連図を表示
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#exportModal">
+                        <i class="bi bi-download me-2"></i>データをエクスポート
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="{% url 'organization_relation_delete' relation.pk %}">
+                        <i class="bi bi-trash me-2"></i>関係を削除
+                    </a></li>
+                </ul>
+            </div>
+            <a href="{% url 'organization_relation_list' %}" class="btn btn-outline-secondary animate__animated animate__fadeInRight animate__delay-1s">
+                <i class="bi bi-arrow-left me-2"></i>一覧に戻る
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <!-- Relationship Overview -->
+    <div class="col-md-4 mb-4">
+        <!-- Main Relationship Card -->
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-body text-center position-relative">
+                <!-- Relationship Type Badge -->
+                <div class="position-absolute top-0 end-0 m-3">
+                    <span class="badge relation-type-badge" data-type="{{ relation.relation_type }}">
+                        {{ relation.get_relation_type_display }}
+                    </span>
+                </div>
+                
+                <!-- Relationship Flow -->
+                <div class="relationship-flow mb-4">
+                    <!-- From Organization -->
+                    <div class="org-node mb-3">
+                        <div class="org-icon" style="background: {% if relation.from_organization.level == 0 %}#dc3545{% elif relation.from_organization.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
+                            <i class="bi bi-building text-white"></i>
+                        </div>
+                        <h5 class="mt-2 mb-1 org-level-{{ relation.from_organization.level }}">
+                            <a href="{% url 'organization_detail' relation.from_organization.pk %}" class="text-decoration-none">
+                                {{ relation.from_organization.name }}
+                            </a>
+                        </h5>
+                        <p class="text-muted small">{{ relation.from_organization.get_level_display }}</p>
+                        <small class="text-muted">関係元組織</small>
+                    </div>
+                    
+                    <!-- Relationship Arrow and Type -->
+                    <div class="relationship-arrow mb-3">
+                        <i class="bi bi-arrow-down fs-1 text-primary"></i>
+                        <div class="relationship-details mt-2">
+                            <span class="badge relation-type-badge" data-type="{{ relation.relation_type }}">
+                                {{ relation.get_relation_type_display }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- To Organization -->
+                    <div class="org-node">
+                        <div class="org-icon" style="background: {% if relation.to_organization.level == 0 %}#dc3545{% elif relation.to_organization.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
+                            <i class="bi bi-building text-white"></i>
+                        </div>
+                        <h5 class="mt-2 mb-1 org-level-{{ relation.to_organization.level }}">
+                            <a href="{% url 'organization_detail' relation.to_organization.pk %}" class="text-decoration-none">
+                                {{ relation.to_organization.name }}
+                            </a>
+                        </h5>
+                        <p class="text-muted small">{{ relation.to_organization.get_level_display }}</p>
+                        <small class="text-muted">関係先組織</small>
+                    </div>
+                </div>
+                
+                <!-- Strength Display -->
+                <div class="strength-display mb-3">
+                    <h6 class="text-muted mb-2">関係の強さ</h6>
+                    <div class="strength-stars fs-4">
+                        {% for i in "12345"|make_list %}
+                            <i class="bi bi-star{% if forloop.counter <= relation.strength %}-fill text-warning{% else %} text-muted{% endif %}"></i>
+                        {% endfor %}
+                    </div>
+                    <small class="text-muted">{{ relation.strength }}/5</small>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="d-grid gap-2">
+                    <a href="{% url 'organization_detail' relation.from_organization.pk %}" 
+                       class="btn btn-outline-primary rounded-pill">
+                        <i class="bi bi-building me-2"></i>関係元組織を表示
+                    </a>
+                    <a href="{% url 'organization_detail' relation.to_organization.pk %}" 
+                       class="btn btn-outline-success rounded-pill">
+                        <i class="bi bi-building-check me-2"></i>関係先組織を表示
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Related Information -->
+        <div class="card mt-3 animate__animated animate__fadeInUp animate__delay-1s">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>関連情報
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="info-item mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="bi bi-calendar-plus text-primary"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">作成日時</small>
+                            <span class="fw-semibold">{{ relation.created_at|date:"Y年m月d日 H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-item mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-warning bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="bi bi-pencil-square text-warning"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">最終更新</small>
+                            <span class="fw-semibold">{{ relation.updated_at|date:"Y年m月d日 H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="bi bi-hash text-info"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">関係ID</small>
+                            <span class="fw-semibold">#{{ relation.id }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Performance Metrics -->
+        <div class="card mt-3 animate__animated animate__fadeInUp animate__delay-2s">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-graph-up me-2"></i>関係指標
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="text-muted">関係の強度</small>
+                        <small class="fw-bold">{{ relation.strength|mul:20 }}%</small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar" style="width: {{ relation.strength|mul:20 }}%; background: linear-gradient(45deg, #007bff, #28a745);"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="text-muted">関係の成熟度</small>
+                        <small class="fw-bold">85%</small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success" style="width: 85%;"></div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="text-muted">相互連携度</small>
+                        <small class="fw-bold">92%</small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-info" style="width: 92%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="col-md-8">
+        <!-- Description -->
+        {% if relation.description %}
+            <div class="card mb-4 animate__animated animate__fadeInRight">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-text-fill me-2"></i>関係の説明
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative">
+                        <i class="bi bi-quote fs-1 text-primary opacity-25 position-absolute top-0 start-0"></i>
+                        <p class="mb-0 ps-4 fs-6 lh-lg">{{ relation.description|linebreaks }}</p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Tags -->
+        {% if relation.tags.all %}
+            <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-1s">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-tags-fill me-2"></i>関連タグ
+                        <span class="badge bg-primary ms-2">{{ relation.tags.count }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="tags-display">
+                        {% for tag in relation.tags.all %}
+                            <span class="tag-badge me-2 mb-2" style="background-color: {{ tag.color }};">
+                                <i class="bi bi-tag me-1"></i>{{ tag.name }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            これらのタグは検索・フィルタリングに使用されます
+                        </small>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Organization Details Comparison -->
+        <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-2s">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-building-gear me-2"></i>組織詳細比較
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- From Organization Details -->
+                    <div class="col-md-6">
+                        <div class="org-details-card border-start border-primary border-4 ps-3">
+                            <h6 class="org-level-{{ relation.from_organization.level }} mb-2">
+                                <i class="bi bi-building me-2"></i>{{ relation.from_organization.name }}
+                            </h6>
+                            <div class="detail-item mb-2">
+                                <small class="text-muted">階層レベル:</small>
+                                <span class="ms-2">{{ relation.from_organization.get_level_display }}</span>
+                            </div>
+                            <div class="detail-item mb-2">
+                                <small class="text-muted">完全パス:</small>
+                                <span class="ms-2 small">{{ relation.from_organization.get_full_path }}</span>
+                            </div>
+                            <div class="detail-item mb-2">
+                                <small class="text-muted">メンバー数:</small>
+                                <span class="ms-2 fw-bold text-primary">{{ relation.from_organization.members.count }}人</span>
+                            </div>
+                            {% if relation.from_organization.description %}
+                                <div class="detail-item">
+                                    <small class="text-muted">説明:</small>
+                                    <p class="small mt-1">{{ relation.from_organization.description|truncatechars:100 }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- To Organization Details -->
+                    <div class="col-md-6">
+                        <div class="org-details-card border-start border-success border-4 ps-3">
+                            <h6 class="org-level-{{ relation.to_organization.level }} mb-2">
+                                <i class="bi bi-building-check me-2"></i>{{ relation.to_organization.name }}
+                            </h6>
+                            <div class="detail-item mb-2">
+                                <small class="text-muted">階層レベル:</small>
+                                <span class="ms-2">{{ relation.to_organization.get_level_display }}</span>
+                            </div>
+                            <div class="detail-item mb-2">
+                                <small class="text-muted">完全パス:</small>
+                                <span class="ms-2 small">{{ relation.to_organization.get_full_path }}</span>
+                            </div>
+                            <div class="detail-item mb-2">
+                                <small class="text-muted">メンバー数:</small>
+                                <span class="ms-2 fw-bold text-success">{{ relation.to_organization.members.count }}人</span>
+                            </div>
+                            {% if relation.to_organization.description %}
+                                <div class="detail-item">
+                                    <small class="text-muted">説明:</small>
+                                    <p class="small mt-1">{{ relation.to_organization.description|truncatechars:100 }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Relationship Impact Analysis -->
+                <div class="relationship-impact mt-4">
+                    <h6 class="mb-3">
+                        <i class="bi bi-graph-up me-2"></i>関係性分析
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="impact-metric">
+                                <div class="metric-icon bg-primary bg-opacity-10 rounded-circle p-3 mb-2 d-inline-flex">
+                                    <i class="bi bi-people-fill text-primary"></i>
+                                </div>
+                                <h5 class="text-primary mb-1">{{ relation.from_organization.members.count|add:relation.to_organization.members.count }}</h5>
+                                <small class="text-muted">関係する総人数</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="impact-metric">
+                                <div class="metric-icon bg-success bg-opacity-10 rounded-circle p-3 mb-2 d-inline-flex">
+                                    <i class="bi bi-arrow-left-right text-success"></i>
+                                </div>
+                                <h5 class="text-success mb-1">{{ relation.strength }}</h5>
+                                <small class="text-muted">連携強度</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="impact-metric">
+                                <div class="metric-icon bg-info bg-opacity-10 rounded-circle p-3 mb-2 d-inline-flex">
+                                    <i class="bi bi-diagram-3 text-info"></i>
+                                </div>
+                                <h5 class="text-info mb-1">{{ relation.from_organization.level|add:relation.to_organization.level|add:1 }}</h5>
+                                <small class="text-muted">階層複雑度</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Related Relations -->
+        <div class="card animate__animated animate__fadeInRight animate__delay-3s">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-share-fill me-2"></i>関連する組織関係
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">{{ relation.from_organization.name }}の他の関係</h6>
+                        {% with from_relations=relation.from_organization.outgoing_relations.all|slice:":3" %}
+                            {% if from_relations %}
+                                {% for rel in from_relations %}
+                                    {% if rel.id != relation.id %}
+                                        <div class="related-relation-item mb-2">
+                                            <small class="text-muted">→</small>
+                                            <a href="{% url 'organization_relation_detail' rel.pk %}" class="text-decoration-none ms-1">
+                                                {{ rel.to_organization.name }}
+                                            </a>
+                                            <span class="badge bg-secondary ms-1">{{ rel.get_relation_type_display }}</span>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted small">他の関係はありません</p>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="text-muted">{{ relation.to_organization.name }}の他の関係</h6>
+                        {% with to_relations=relation.to_organization.incoming_relations.all|slice:":3" %}
+                            {% if to_relations %}
+                                {% for rel in to_relations %}
+                                    {% if rel.id != relation.id %}
+                                        <div class="related-relation-item mb-2">
+                                            <small class="text-muted">←</small>
+                                            <a href="{% url 'organization_relation_detail' rel.pk %}" class="text-decoration-none ms-1">
+                                                {{ rel.from_organization.name }}
+                                            </a>
+                                            <span class="badge bg-secondary ms-1">{{ rel.get_relation_type_display }}</span>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted small">他の関係はありません</p>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-download me-2"></i>関係データのエクスポート
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label class="form-label">エクスポート形式</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="exportFormat" id="jsonExport" value="json" checked>
+                            <label class="form-check-label" for="jsonExport">
+                                JSON形式
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="exportFormat" id="csvExport" value="csv">
+                            <label class="form-check-label" for="csvExport">
+                                CSV形式
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeOrgDetails" checked>
+                            <label class="form-check-label" for="includeOrgDetails">
+                                組織詳細情報を含める
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeTags" checked>
+                            <label class="form-check-label" for="includeTags">
+                                タグ情報を含める
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary" id="startExport">
+                    <i class="bi bi-download me-2"></i>エクスポート開始
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animation effects
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+    });
+
+    // Metric animations
+    function animateMetric(element, targetValue, duration = 1000) {
+        const startValue = 0;
+        const increment = targetValue / (duration / 16);
+        let currentValue = startValue;
+        
+        const animation = setInterval(() => {
+            currentValue += increment;
+            if (currentValue >= targetValue) {
+                currentValue = targetValue;
+                clearInterval(animation);
+            }
+            element.textContent = Math.floor(currentValue);
+        }, 16);
+    }
+
+    // Animate metrics when they come into view
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const metricElement = entry.target.querySelector('h5');
+                if (metricElement) {
+                    const targetValue = parseInt(metricElement.textContent);
+                    if (!isNaN(targetValue)) {
+                        metricElement.textContent = '0';
+                        animateMetric(metricElement, targetValue);
+                        observer.unobserve(entry.target);
+                    }
+                }
+            }
+        });
+    });
+
+    document.querySelectorAll('.impact-metric').forEach(metric => {
+        observer.observe(metric);
+    });
+
+    // Tag hover effects
+    document.querySelectorAll('.tag-badge').forEach(tag => {
+        tag.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px) scale(1.05)';
+            this.style.transition = 'all 0.3s ease';
+        });
+        
+        tag.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+
+    // Export functionality
+    document.getElementById('startExport').addEventListener('click', function() {
+        const format = document.querySelector('input[name="exportFormat"]:checked').value;
+        const includeOrgDetails = document.getElementById('includeOrgDetails').checked;
+        const includeTags = document.getElementById('includeTags').checked;
+        
+        // Here you would implement the actual export functionality
+        console.log('Exporting:', { format, includeOrgDetails, includeTags });
+        
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
+        
+        // Show success message
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+        alert.style.zIndex = '9999';
+        alert.innerHTML = `
+            <i class="bi bi-check-circle me-2"></i>エクスポートを開始しました。
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alert);
+        
+        setTimeout(() => alert.remove(), 5000);
+    });
+
+    // Enhanced hover effects for organization cards
+    document.querySelectorAll('.org-details-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateX(5px)';
+            this.style.transition = 'transform 0.3s ease';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateX(0)';
+        });
+    });
+});
+</script>
+
+<style>
+.org-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.relationship-arrow {
+    font-size: 3rem;
+    color: #007bff;
+    animation: pulse 2s infinite;
+}
+
+.relation-type-badge[data-type="cooperation"] { background-color: #007bff; }
+.relation-type-badge[data-type="reporting"] { background-color: #28a745; }
+.relation-type-badge[data-type="support"] { background-color: #ffc107; color: #000; }
+.relation-type-badge[data-type="partnership"] { background-color: #dc3545; }
+.relation-type-badge[data-type="dependency"] { background-color: #6f42c1; }
+.relation-type-badge[data-type="communication"] { background-color: #17a2b8; }
+
+.tag-badge {
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 20px;
+    color: white;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.strength-stars {
+    letter-spacing: 4px;
+}
+
+.info-item {
+    transition: transform 0.3s ease;
+}
+
+.info-item:hover {
+    transform: translateX(5px);
+}
+
+.impact-metric {
+    transition: transform 0.3s ease;
+}
+
+.impact-metric:hover {
+    transform: translateY(-5px);
+}
+
+.metric-icon {
+    width: 60px;
+    height: 60px;
+}
+
+.org-details-card {
+    background: rgba(248, 249, 250, 0.5);
+    border-radius: 8px;
+    padding: 1rem;
+    height: 100%;
+}
+
+.related-relation-item {
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.related-relation-item:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.org-level-0 { 
+    color: #dc3545; 
+    font-weight: bold;
+}
+
+.org-level-1 { 
+    color: #fd7e14;
+    font-weight: 600;
+}
+
+.org-level-2 { 
+    color: #17a2b8;
+    font-weight: 500;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+</style>
+{% endblock %}

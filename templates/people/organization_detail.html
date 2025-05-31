@@ -1,49 +1,48 @@
-<!-- templates/people/organization_relation_detail.html -->
+<!-- templates/people/organization_detail.html -->
 {% extends 'base.html' %}
-{% load custom_filters %}
 
-{% block title %}{{ relation.from_organization.name }} → {{ relation.to_organization.name }} - {{ block.super }}{% endblock %}
+{% block title %}{{ organization.name }} - {{ block.super }}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-4 pb-3 mb-4">
     <div class="animate__animated animate__fadeInLeft">
         <h1 class="h2 d-flex align-items-center">
-            <i class="bi bi-diagram-2-fill text-primary me-3 fs-1"></i>
-            組織関係詳細
+            <i class="bi bi-building-fill text-primary me-3 fs-1"></i>
+            {{ organization.name }}
         </h1>
-        <p class="text-muted">{{ relation.from_organization.name }} → {{ relation.to_organization.name }}</p>
+        <p class="text-muted">{{ organization.get_level_display }} • {{ organization.get_full_path }}</p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">
         {% if user.is_authenticated %}
             <div class="btn-group me-2 animate__animated animate__fadeInRight">
-                <a href="{% url 'organization_relation_edit' relation.pk %}" class="btn btn-primary">
+                <a href="{% url 'organization_edit' organization.pk %}" class="btn btn-primary">
                     <i class="bi bi-pencil-fill me-2"></i>編集
                 </a>
-                <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" 
+                <button type="button" class="btn btn-outline-primary dropdown-toggle dropdown-toggle-split" 
                         data-bs-toggle="dropdown">
                     <span class="visually-hidden">その他のオプション</span>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{% url 'organization_relation_edit' relation.pk %}">
-                        <i class="bi bi-pencil me-2"></i>関係を編集
+                    <li><a class="dropdown-item" href="{% url 'organization_edit' organization.pk %}">
+                        <i class="bi bi-pencil me-2"></i>組織情報を編集
                     </a></li>
-                    <li><a class="dropdown-item" href="{% url 'organization_relation_create' %}">
-                        <i class="bi bi-plus-circle me-2"></i>新しい関係を追加
+                    <li><a class="dropdown-item" href="{% url 'person_create' %}">
+                        <i class="bi bi-person-plus me-2"></i>メンバーを追加
                     </a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{% url 'relationship_graph' %}">
+                    <li><a class="dropdown-item" href="{% url 'relationship_graph' %}?organization={{ organization.id }}">
                         <i class="bi bi-share me-2"></i>関連図を表示
                     </a></li>
-                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#exportModal">
-                        <i class="bi bi-download me-2"></i>データをエクスポート
+                    <li><a class="dropdown-item" href="{% url 'organization_relation_create' %}">
+                        <i class="bi bi-plus-circle me-2"></i>組織関係を追加
                     </a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="{% url 'organization_relation_delete' relation.pk %}">
-                        <i class="bi bi-trash me-2"></i>関係を削除
+                    <li><a class="dropdown-item text-danger" href="{% url 'organization_delete' organization.pk %}">
+                        <i class="bi bi-trash me-2"></i>組織を削除
                     </a></li>
                 </ul>
             </div>
-            <a href="{% url 'organization_relation_list' %}" class="btn btn-outline-secondary animate__animated animate__fadeInRight animate__delay-1s">
+            <a href="{% url 'organization_list' %}" class="btn btn-outline-secondary animate__animated animate__fadeInRight animate__delay-1s">
                 <i class="bi bi-arrow-left me-2"></i>一覧に戻る
             </a>
         {% endif %}
@@ -51,165 +50,123 @@
 </div>
 
 <div class="row">
-    <!-- Relationship Overview -->
+    <!-- Organization Info Card -->
     <div class="col-md-4 mb-4">
-        <!-- Main Relationship Card -->
+        <!-- Main Organization Card -->
         <div class="card animate__animated animate__fadeInUp">
             <div class="card-body text-center position-relative">
-                <!-- Relationship Type Badge -->
+                <!-- Level Badge -->
                 <div class="position-absolute top-0 end-0 m-3">
-                    <span class="badge relation-type-badge" data-type="{{ relation.relation_type }}">
-                        {{ relation.get_relation_type_display }}
+                    <span class="badge level-badge level-{{ organization.level }}">
+                        {{ organization.get_level_display }}
                     </span>
                 </div>
                 
-                <!-- Relationship Flow -->
-                <div class="relationship-flow mb-4">
-                    <!-- From Organization -->
-                    <div class="org-node mb-3">
-                        <div class="org-icon" style="background: {% if relation.from_organization.level == 0 %}#dc3545{% elif relation.from_organization.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
-                            <i class="bi bi-building text-white"></i>
-                        </div>
-                        <h5 class="mt-2 mb-1 org-level-{{ relation.from_organization.level }}">
-                            <a href="{% url 'organization_detail' relation.from_organization.pk %}" class="text-decoration-none">
-                                {{ relation.from_organization.name }}
-                            </a>
-                        </h5>
-                        <p class="text-muted small">{{ relation.from_organization.get_level_display }}</p>
-                        <small class="text-muted">関係元組織</small>
-                    </div>
-                    
-                    <!-- Relationship Arrow and Type -->
-                    <div class="relationship-arrow mb-3">
-                        <i class="bi bi-arrow-down fs-1 text-primary"></i>
-                        <div class="relationship-details mt-2">
-                            <span class="badge relation-type-badge" data-type="{{ relation.relation_type }}">
-                                {{ relation.get_relation_type_display }}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <!-- To Organization -->
-                    <div class="org-node">
-                        <div class="org-icon" style="background: {% if relation.to_organization.level == 0 %}#dc3545{% elif relation.to_organization.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
-                            <i class="bi bi-building text-white"></i>
-                        </div>
-                        <h5 class="mt-2 mb-1 org-level-{{ relation.to_organization.level }}">
-                            <a href="{% url 'organization_detail' relation.to_organization.pk %}" class="text-decoration-none">
-                                {{ relation.to_organization.name }}
-                            </a>
-                        </h5>
-                        <p class="text-muted small">{{ relation.to_organization.get_level_display }}</p>
-                        <small class="text-muted">関係先組織</small>
-                    </div>
+                <!-- Organization Icon -->
+                <div class="org-icon-large mb-4" style="background: {% if organization.level == 0 %}#dc3545{% elif organization.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
+                    <i class="bi bi-building text-white"></i>
                 </div>
                 
-                <!-- Strength Display -->
-                <div class="strength-display mb-3">
-                    <h6 class="text-muted mb-2">関係の強さ</h6>
-                    <div class="strength-stars fs-4">
-                        {% for i in "12345"|make_list %}
-                            <i class="bi bi-star{% if forloop.counter <= relation.strength %}-fill text-warning{% else %} text-muted{% endif %}"></i>
-                        {% endfor %}
-                    </div>
-                    <small class="text-muted">{{ relation.strength }}/5</small>
+                <!-- Basic Info -->
+                <h3 class="fw-bold mb-1 org-level-{{ organization.level }}">{{ organization.name }}</h3>
+                <p class="text-muted mb-2 fs-5">{{ organization.get_level_display }}</p>
+                
+                <!-- Full Path -->
+                <div class="mb-3">
+                    <small class="text-muted">
+                        <i class="bi bi-diagram-3 me-1"></i>{{ organization.get_full_path }}
+                    </small>
+                </div>
+                
+                <!-- Member Count -->
+                <div class="mb-4">
+                    <h2 class="text-primary mb-0">{{ members.count }}</h2>
+                    <small class="text-muted">メンバー</small>
                 </div>
                 
                 <!-- Quick Actions -->
                 <div class="d-grid gap-2">
-                    <a href="{% url 'organization_detail' relation.from_organization.pk %}" 
-                       class="btn btn-outline-primary rounded-pill">
-                        <i class="bi bi-building me-2"></i>関係元組織を表示
+                    <a href="{% url 'person_list' %}?organization={{ organization.id }}" class="btn btn-primary rounded-pill">
+                        <i class="bi bi-people-fill me-2"></i>メンバーを表示
                     </a>
-                    <a href="{% url 'organization_detail' relation.to_organization.pk %}" 
-                       class="btn btn-outline-success rounded-pill">
-                        <i class="bi bi-building-check me-2"></i>関係先組織を表示
+                    <a href="{% url 'person_create' %}" class="btn btn-outline-success rounded-pill">
+                        <i class="bi bi-person-plus me-2"></i>メンバーを追加
+                    </a>
+                    <a href="{% url 'relationship_graph' %}?organization={{ organization.id }}" class="btn btn-outline-info rounded-pill">
+                        <i class="bi bi-share me-2"></i>関連図表示
                     </a>
                 </div>
             </div>
         </div>
         
-        <!-- Related Information -->
+        <!-- Organization Statistics -->
         <div class="card mt-3 animate__animated animate__fadeInUp animate__delay-1s">
             <div class="card-header">
                 <h6 class="mb-0">
-                    <i class="bi bi-info-circle me-2"></i>関連情報
+                    <i class="bi bi-graph-up me-2"></i>組織統計
                 </h6>
             </div>
             <div class="card-body">
-                <div class="info-item mb-3">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
-                            <i class="bi bi-calendar-plus text-primary"></i>
-                        </div>
-                        <div>
-                            <small class="text-muted d-block">作成日時</small>
-                            <span class="fw-semibold">{{ relation.created_at|date:"Y年m月d日 H:i" }}</span>
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="border-end">
+                            <h4 class="text-primary mb-0">{{ members.count }}</h4>
+                            <small class="text-muted">メンバー</small>
                         </div>
                     </div>
-                </div>
-                
-                <div class="info-item mb-3">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-warning bg-opacity-10 rounded-circle p-2 me-3">
-                            <i class="bi bi-pencil-square text-warning"></i>
-                        </div>
-                        <div>
-                            <small class="text-muted d-block">最終更新</small>
-                            <span class="fw-semibold">{{ relation.updated_at|date:"Y年m月d日 H:i" }}</span>
+                    <div class="col-4">
+                        <div class="border-end">
+                            <h4 class="text-success mb-0">{{ children.count }}</h4>
+                            <small class="text-muted">子組織</small>
                         </div>
                     </div>
-                </div>
-                
-                <div class="info-item">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
-                            <i class="bi bi-hash text-info"></i>
-                        </div>
-                        <div>
-                            <small class="text-muted d-block">関係ID</small>
-                            <span class="fw-semibold">#{{ relation.id }}</span>
-                        </div>
+                    <div class="col-4">
+                        <h4 class="text-warning mb-0">{{ outgoing_relations.count|add:incoming_relations.count }}</h4>
+                        <small class="text-muted">関係数</small>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Performance Metrics -->
+        <!-- Hierarchy Information -->
         <div class="card mt-3 animate__animated animate__fadeInUp animate__delay-2s">
             <div class="card-header">
                 <h6 class="mb-0">
-                    <i class="bi bi-graph-up me-2"></i>関係指標
+                    <i class="bi bi-diagram-3 me-2"></i>階層情報
                 </h6>
             </div>
             <div class="card-body">
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <small class="text-muted">関係の強度</small>
-                        <small class="fw-bold">{{ relation.strength|mul:20 }}%</small>
+                {% if organization.parent %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="bi bi-arrow-up text-primary"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">親組織</small>
+                            <a href="{% url 'organization_detail' organization.parent.pk %}" class="text-decoration-none">
+                                {{ organization.parent.name }}
+                            </a>
+                        </div>
                     </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar" style="width: {{ relation.strength|mul:20 }}%; background: linear-gradient(45deg, #007bff, #28a745);"></div>
+                {% endif %}
+                
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
+                        <i class="bi bi-building text-info"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">階層レベル</small>
+                        <span class="org-level-{{ organization.level }}">{{ organization.get_level_display }}</span>
                     </div>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <small class="text-muted">関係の成熟度</small>
-                        <small class="fw-bold">85%</small>
+                <div class="d-flex align-items-center">
+                    <div class="bg-success bg-opacity-10 rounded-circle p-2 me-3">
+                        <i class="bi bi-calendar-plus text-success"></i>
                     </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-success" style="width: 85%;"></div>
-                    </div>
-                </div>
-                
-                <div>
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <small class="text-muted">相互連携度</small>
-                        <small class="fw-bold">92%</small>
-                    </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-info" style="width: 92%;"></div>
+                    <div>
+                        <small class="text-muted d-block">作成日</small>
+                        <span>{{ organization.created_at|date:"Y年m月d日" }}</span>
                     </div>
                 </div>
             </div>
@@ -219,201 +176,287 @@
     <!-- Main Content -->
     <div class="col-md-8">
         <!-- Description -->
-        {% if relation.description %}
+        {% if organization.description %}
             <div class="card mb-4 animate__animated animate__fadeInRight">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="bi bi-chat-text-fill me-2"></i>関係の説明
+                        <i class="bi bi-info-circle-fill me-2"></i>組織概要
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="position-relative">
                         <i class="bi bi-quote fs-1 text-primary opacity-25 position-absolute top-0 start-0"></i>
-                        <p class="mb-0 ps-4 fs-6 lh-lg">{{ relation.description|linebreaks }}</p>
+                        <p class="mb-0 ps-4 fs-6 lh-lg">{{ organization.description|linebreaks }}</p>
                     </div>
                 </div>
             </div>
         {% endif %}
         
-        <!-- Tags -->
-        {% if relation.tags.all %}
+        <!-- Members -->
+        {% if members %}
             <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-1s">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-people-fill me-2"></i>メンバー
+                        <span class="badge bg-primary ms-2">{{ members.count }}</span>
+                    </h5>
+                    <div>
+                        <a href="{% url 'person_list' %}?organization={{ organization.id }}" 
+                           class="btn btn-sm btn-outline-light">
+                            すべて表示 <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for member in members|slice:":8" %}
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        {% if member.photo %}
+                                            <img src="{{ member.photo.url }}" alt="{{ member.name }}"
+                                                 class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center"
+                                                 style="width: 50px; height: 50px;">
+                                                <i class="bi bi-person text-muted"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'person_detail' member.pk %}" 
+                                               class="text-decoration-none">
+                                                {{ member.name }}
+                                            </a>
+                                        </h6>
+                                        <p class="mb-0 text-muted small">{{ member.position }}</p>
+                                        {% if member.tags.all %}
+                                            <div class="mt-1">
+                                                {% for tag in member.tags.all|slice:":2" %}
+                                                    <span class="badge me-1" style="background-color: {{ tag.color }}; font-size: 0.6rem;">
+                                                        {{ tag.name }}
+                                                    </span>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Child Organizations -->
+        {% if children %}
+            <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-2s">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="bi bi-tags-fill me-2"></i>関連タグ
-                        <span class="badge bg-primary ms-2">{{ relation.tags.count }}</span>
+                        <i class="bi bi-diagram-2-fill me-2"></i>子組織
+                        <span class="badge bg-success ms-2">{{ children.count }}</span>
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="tags-display">
-                        {% for tag in relation.tags.all %}
-                            <span class="tag-badge me-2 mb-2" style="background-color: {{ tag.color }};">
-                                <i class="bi bi-tag me-1"></i>{{ tag.name }}
-                            </span>
+                    <div class="row">
+                        {% for child in children %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-start border-4 h-100" style="border-color: {% if child.level == 1 %}#ffc107{% else %}#17a2b8{% endif %} !important;">
+                                    <div class="card-body py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                <div class="org-icon" style="background: {% if child.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
+                                                    <i class="bi bi-building text-white"></i>
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">
+                                                    <a href="{% url 'organization_detail' child.pk %}" 
+                                                       class="text-decoration-none">
+                                                        {{ child.name }}
+                                                    </a>
+                                                </h6>
+                                                <p class="mb-1 text-muted small">{{ child.get_level_display }}</p>
+                                                <small class="text-primary">
+                                                    <i class="bi bi-people me-1"></i>{{ child.member_count }}人
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         {% endfor %}
-                    </div>
-                    
-                    <div class="mt-3">
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>
-                            これらのタグは検索・フィルタリングに使用されます
-                        </small>
                     </div>
                 </div>
             </div>
         {% endif %}
         
-        <!-- Organization Details Comparison -->
-        <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-2s">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-building-gear me-2"></i>組織詳細比較
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <!-- From Organization Details -->
-                    <div class="col-md-6">
-                        <div class="org-details-card border-start border-primary border-4 ps-3">
-                            <h6 class="org-level-{{ relation.from_organization.level }} mb-2">
-                                <i class="bi bi-building me-2"></i>{{ relation.from_organization.name }}
-                            </h6>
-                            <div class="detail-item mb-2">
-                                <small class="text-muted">階層レベル:</small>
-                                <span class="ms-2">{{ relation.from_organization.get_level_display }}</span>
-                            </div>
-                            <div class="detail-item mb-2">
-                                <small class="text-muted">完全パス:</small>
-                                <span class="ms-2 small">{{ relation.from_organization.get_full_path }}</span>
-                            </div>
-                            <div class="detail-item mb-2">
-                                <small class="text-muted">メンバー数:</small>
-                                <span class="ms-2 fw-bold text-primary">{{ relation.from_organization.members.count }}人</span>
-                            </div>
-                            {% if relation.from_organization.description %}
-                                <div class="detail-item">
-                                    <small class="text-muted">説明:</small>
-                                    <p class="small mt-1">{{ relation.from_organization.description|truncatechars:100 }}</p>
+        <!-- Organization Relations -->
+        {% if outgoing_relations or incoming_relations %}
+            <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-3s">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-share-fill me-2"></i>組織関係
+                        <span class="badge bg-info ms-2">{{ outgoing_relations.count|add:incoming_relations.count }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Relationship Tabs -->
+                    <ul class="nav nav-pills mb-4" role="tablist">
+                        {% if outgoing_relations %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="outgoing-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#outgoing" type="button" role="tab">
+                                    <i class="bi bi-arrow-right-circle me-2"></i>
+                                    関係先 ({{ outgoing_relations.count }})
+                                </button>
+                            </li>
+                        {% endif %}
+                        {% if incoming_relations %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link {% if not outgoing_relations %}active{% endif %}" 
+                                        id="incoming-tab" data-bs-toggle="pill" data-bs-target="#incoming" 
+                                        type="button" role="tab">
+                                    <i class="bi bi-arrow-left-circle me-2"></i>
+                                    関係元 ({{ incoming_relations.count }})
+                                </button>
+                            </li>
+                        {% endif %}
+                    </ul>
+                    
+                    <!-- Tab Content -->
+                    <div class="tab-content">
+                        {% if outgoing_relations %}
+                            <div class="tab-pane fade show active" id="outgoing" role="tabpanel">
+                                <div class="row">
+                                    {% for relation in outgoing_relations %}
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card border-start border-primary border-4 h-100">
+                                                <div class="card-body py-3">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="me-3">
+                                                            <div class="org-icon" style="background: {% if relation.to_organization.level == 0 %}#dc3545{% elif relation.to_organization.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
+                                                                <i class="bi bi-building text-white"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-1">
+                                                                <a href="{% url 'organization_detail' relation.to_organization.pk %}" 
+                                                                   class="text-decoration-none">
+                                                                    {{ relation.to_organization.name }}
+                                                                </a>
+                                                            </h6>
+                                                            <p class="mb-1 text-muted small">{{ relation.to_organization.get_level_display }}</p>
+                                                            <span class="badge bg-primary rounded-pill">
+                                                                {{ relation.get_relation_type_display }}
+                                                            </span>
+                                                            <div class="mt-1">
+                                                                {% for i in "12345"|make_list %}
+                                                                    <i class="bi bi-star{% if forloop.counter <= relation.strength %}-fill text-warning{% else %} text-muted{% endif %}" style="font-size: 0.8rem;"></i>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {% if relation.description %}
+                                                        <p class="mt-3 mb-0 small text-muted">
+                                                            <i class="bi bi-chat-quote me-1"></i>
+                                                            {{ relation.description|truncatechars:80 }}
+                                                        </p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
                                 </div>
-                            {% endif %}
-                        </div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if incoming_relations %}
+                            <div class="tab-pane fade {% if not outgoing_relations %}show active{% endif %}" 
+                                 id="incoming" role="tabpanel">
+                                <div class="row">
+                                    {% for relation in incoming_relations %}
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card border-start border-success border-4 h-100">
+                                                <div class="card-body py-3">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="me-3">
+                                                            <div class="org-icon" style="background: {% if relation.from_organization.level == 0 %}#dc3545{% elif relation.from_organization.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
+                                                                <i class="bi bi-building text-white"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-1">
+                                                                <a href="{% url 'organization_detail' relation.from_organization.pk %}"
+                                                                   class="text-decoration-none">
+                                                                    {{ relation.from_organization.name }}
+                                                                </a>
+                                                            </h6>
+                                                            <p class="mb-1 text-muted small">{{ relation.from_organization.get_level_display }}</p>
+                                                            <span class="badge bg-success rounded-pill">
+                                                                {{ relation.get_relation_type_display }}
+                                                            </span>
+                                                            <div class="mt-1">
+                                                                {% for i in "12345"|make_list %}
+                                                                    <i class="bi bi-star{% if forloop.counter <= relation.strength %}-fill text-warning{% else %} text-muted{% endif %}" style="font-size: 0.8rem;"></i>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {% if relation.description %}
+                                                        <p class="mt-3 mb-0 small text-muted">
+                                                            <i class="bi bi-chat-quote me-1"></i>
+                                                            {{ relation.description|truncatechars:80 }}
+                                                        </p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
                     
-                    <!-- To Organization Details -->
-                    <div class="col-md-6">
-                        <div class="org-details-card border-start border-success border-4 ps-3">
-                            <h6 class="org-level-{{ relation.to_organization.level }} mb-2">
-                                <i class="bi bi-building-check me-2"></i>{{ relation.to_organization.name }}
-                            </h6>
-                            <div class="detail-item mb-2">
-                                <small class="text-muted">階層レベル:</small>
-                                <span class="ms-2">{{ relation.to_organization.get_level_display }}</span>
-                            </div>
-                            <div class="detail-item mb-2">
-                                <small class="text-muted">完全パス:</small>
-                                <span class="ms-2 small">{{ relation.to_organization.get_full_path }}</span>
-                            </div>
-                            <div class="detail-item mb-2">
-                                <small class="text-muted">メンバー数:</small>
-                                <span class="ms-2 fw-bold text-success">{{ relation.to_organization.members.count }}人</span>
-                            </div>
-                            {% if relation.to_organization.description %}
-                                <div class="detail-item">
-                                    <small class="text-muted">説明:</small>
-                                    <p class="small mt-1">{{ relation.to_organization.description|truncatechars:100 }}</p>
-                                </div>
-                            {% endif %}
+                    <!-- Add Relationship Button -->
+                    {% if user.is_authenticated %}
+                        <div class="text-center mt-4">
+                            <a href="{% url 'organization_relation_create' %}" class="btn btn-outline-primary rounded-pill">
+                                <i class="bi bi-plus-circle me-2"></i>新しい関係を追加
+                            </a>
                         </div>
-                    </div>
-                </div>
-                
-                <!-- Relationship Impact Analysis -->
-                <div class="relationship-impact mt-4">
-                    <h6 class="mb-3">
-                        <i class="bi bi-graph-up me-2"></i>関係性分析
-                    </h6>
-                    <div class="row">
-                        <div class="col-md-4 text-center">
-                            <div class="impact-metric">
-                                <div class="metric-icon bg-primary bg-opacity-10 rounded-circle p-3 mb-2 d-inline-flex">
-                                    <i class="bi bi-people-fill text-primary"></i>
-                                </div>
-                                <h5 class="text-primary mb-1">{{ relation.from_organization.members.count|add:relation.to_organization.members.count }}</h5>
-                                <small class="text-muted">関係する総人数</small>
-                            </div>
-                        </div>
-                        <div class="col-md-4 text-center">
-                            <div class="impact-metric">
-                                <div class="metric-icon bg-success bg-opacity-10 rounded-circle p-3 mb-2 d-inline-flex">
-                                    <i class="bi bi-arrow-left-right text-success"></i>
-                                </div>
-                                <h5 class="text-success mb-1">{{ relation.strength }}</h5>
-                                <small class="text-muted">連携強度</small>
-                            </div>
-                        </div>
-                        <div class="col-md-4 text-center">
-                            <div class="impact-metric">
-                                <div class="metric-icon bg-info bg-opacity-10 rounded-circle p-3 mb-2 d-inline-flex">
-                                    <i class="bi bi-diagram-3 text-info"></i>
-                                </div>
-                                <h5 class="text-info mb-1">{{ relation.from_organization.level|add:relation.to_organization.level|add:1 }}</h5>
-                                <small class="text-muted">階層複雑度</small>
-                            </div>
-                        </div>
-                    </div>
+                    {% endif %}
                 </div>
             </div>
-        </div>
+        {% endif %}
         
-        <!-- Related Relations -->
-        <div class="card animate__animated animate__fadeInRight animate__delay-3s">
+        <!-- System Information -->
+        <div class="card animate__animated animate__fadeInRight animate__delay-4s">
             <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-share-fill me-2"></i>関連する組織関係
-                </h5>
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>システム情報
+                </h6>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="text-muted">{{ relation.from_organization.name }}の他の関係</h6>
-                        {% with from_relations=relation.from_organization.outgoing_relations.all|slice:":3" %}
-                            {% if from_relations %}
-                                {% for rel in from_relations %}
-                                    {% if rel.id != relation.id %}
-                                        <div class="related-relation-item mb-2">
-                                            <small class="text-muted">→</small>
-                                            <a href="{% url 'organization_relation_detail' rel.pk %}" class="text-decoration-none ms-1">
-                                                {{ rel.to_organization.name }}
-                                            </a>
-                                            <span class="badge bg-secondary ms-1">{{ rel.get_relation_type_display }}</span>
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            {% else %}
-                                <p class="text-muted small">他の関係はありません</p>
-                            {% endif %}
-                        {% endwith %}
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-calendar-plus text-success me-2"></i>
+                            <div>
+                                <small class="text-muted d-block">作成日時</small>
+                                <span>{{ organization.created_at|date:"Y年m月d日 H:i" }}</span>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="col-md-6">
-                        <h6 class="text-muted">{{ relation.to_organization.name }}の他の関係</h6>
-                        {% with to_relations=relation.to_organization.incoming_relations.all|slice:":3" %}
-                            {% if to_relations %}
-                                {% for rel in to_relations %}
-                                    {% if rel.id != relation.id %}
-                                        <div class="related-relation-item mb-2">
-                                            <small class="text-muted">←</small>
-                                            <a href="{% url 'organization_relation_detail' rel.pk %}" class="text-decoration-none ms-1">
-                                                {{ rel.from_organization.name }}
-                                            </a>
-                                            <span class="badge bg-secondary ms-1">{{ rel.get_relation_type_display }}</span>
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            {% else %}
-                                <p class="text-muted small">他の関係はありません</p>
-                            {% endif %}
-                        {% endwith %}
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-pencil-square text-warning me-2"></i>
+                            <div>
+                                <small class="text-muted d-block">最終更新</small>
+                                <span>{{ organization.updated_at|date:"Y年m月d日 H:i" }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -421,239 +464,185 @@
     </div>
 </div>
 
-<!-- Export Modal -->
-<div class="modal fade" id="exportModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="bi bi-download me-2"></i>関係データのエクスポート
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <div class="mb-3">
-                        <label class="form-label">エクスポート形式</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="exportFormat" id="jsonExport" value="json" checked>
-                            <label class="form-check-label" for="jsonExport">
-                                JSON形式
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="exportFormat" id="csvExport" value="csv">
-                            <label class="form-check-label" for="csvExport">
-                                CSV形式
-                            </label>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="includeOrgDetails" checked>
-                            <label class="form-check-label" for="includeOrgDetails">
-                                組織詳細情報を含める
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="includeTags" checked>
-                            <label class="form-check-label" for="includeTags">
-                                タグ情報を含める
-                            </label>
+<!-- Action Bar -->
+{% if user.is_authenticated %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card animate__animated animate__fadeInUp animate__delay-5s">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="bi bi-gear me-2"></i>アクション
+                        </h6>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'organization_edit' organization.pk %}" class="btn btn-primary rounded-pill me-2">
+                                <i class="bi bi-pencil me-2"></i>編集
+                            </a>
+                            <a href="{% url 'organization_list' %}" class="btn btn-outline-secondary rounded-pill me-2">
+                                <i class="bi bi-list me-2"></i>一覧
+                            </a>
+                            <a href="{% url 'organization_create' %}" class="btn btn-outline-success rounded-pill me-2">
+                                <i class="bi bi-building-add me-2"></i>新規追加
+                            </a>
+                            <a href="{% url 'relationship_graph' %}?organization={{ organization.id }}" 
+                               class="btn btn-outline-info rounded-pill">
+                                <i class="bi bi-share me-2"></i>関連図表示
+                            </a>
                         </div>
                     </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                <button type="button" class="btn btn-primary" id="startExport">
-                    <i class="bi bi-download me-2"></i>エクスポート開始
-                </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Animation effects
-    const cards = document.querySelectorAll('.card');
-    cards.forEach((card, index) => {
-        card.style.animationDelay = `${index * 0.1}s`;
-    });
-
-    // Metric animations
-    function animateMetric(element, targetValue, duration = 1000) {
-        const startValue = 0;
-        const increment = targetValue / (duration / 16);
-        let currentValue = startValue;
+    // Statistics counter animation
+    function animateCounter(element, start, end, duration) {
+        const range = end - start;
+        let current = start;
+        const increment = end > start ? 1 : -1;
+        const stepTime = Math.abs(Math.floor(duration / range));
         
-        const animation = setInterval(() => {
-            currentValue += increment;
-            if (currentValue >= targetValue) {
-                currentValue = targetValue;
-                clearInterval(animation);
+        if (range === 0) return;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            element.textContent = current;
+            if (current === end) {
+                clearInterval(timer);
             }
-            element.textContent = Math.floor(currentValue);
-        }, 16);
+        }, stepTime);
     }
 
-    // Animate metrics when they come into view
+    // Animate statistics when they come into view
+    const statsNumbers = document.querySelectorAll('.text-primary, .text-success, .text-warning');
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const metricElement = entry.target.querySelector('h5');
-                if (metricElement) {
-                    const targetValue = parseInt(metricElement.textContent);
-                    if (!isNaN(targetValue)) {
-                        metricElement.textContent = '0';
-                        animateMetric(metricElement, targetValue);
-                        observer.unobserve(entry.target);
-                    }
+            if (entry.isIntersecting && entry.target.tagName === 'H4') {
+                const targetValue = parseInt(entry.target.textContent);
+                if (!isNaN(targetValue)) {
+                    entry.target.textContent = '0';
+                    animateCounter(entry.target, 0, targetValue, 1000);
+                    observer.unobserve(entry.target);
                 }
             }
         });
     });
 
-    document.querySelectorAll('.impact-metric').forEach(metric => {
-        observer.observe(metric);
+    statsNumbers.forEach(stat => {
+        if (stat.tagName === 'H4') {
+            observer.observe(stat);
+        }
     });
 
-    // Tag hover effects
-    document.querySelectorAll('.tag-badge').forEach(tag => {
-        tag.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-2px) scale(1.05)';
-            this.style.transition = 'all 0.3s ease';
-        });
-        
-        tag.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0) scale(1)';
-        });
-    });
-
-    // Export functionality
-    document.getElementById('startExport').addEventListener('click', function() {
-        const format = document.querySelector('input[name="exportFormat"]:checked').value;
-        const includeOrgDetails = document.getElementById('includeOrgDetails').checked;
-        const includeTags = document.getElementById('includeTags').checked;
-        
-        // Here you would implement the actual export functionality
-        console.log('Exporting:', { format, includeOrgDetails, includeTags });
-        
-        // Close modal
-        bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
-        
-        // Show success message
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
-        alert.style.zIndex = '9999';
-        alert.innerHTML = `
-            <i class="bi bi-check-circle me-2"></i>エクスポートを開始しました。
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(alert);
-        
-        setTimeout(() => alert.remove(), 5000);
-    });
-
-    // Enhanced hover effects for organization cards
-    document.querySelectorAll('.org-details-card').forEach(card => {
+    // Enhanced card hover effects
+    document.querySelectorAll('.card').forEach(card => {
         card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateX(5px)';
+            this.style.transform = 'translateY(-2px)';
             this.style.transition = 'transform 0.3s ease';
         });
         
         card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateX(0)';
+            this.style.transform = 'translateY(0)';
+        });
+    });
+
+    // Relationship tab switching with smooth transition
+    document.querySelectorAll('[data-bs-toggle="pill"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function() {
+            const targetPane = document.querySelector(this.dataset.bsTarget);
+            if (targetPane) {
+                targetPane.style.opacity = '0';
+                targetPane.style.transform = 'translateX(20px)';
+                
+                setTimeout(() => {
+                    targetPane.style.transition = 'all 0.3s ease';
+                    targetPane.style.opacity = '1';
+                    targetPane.style.transform = 'translateX(0)';
+                }, 50);
+            }
         });
     });
 });
 </script>
 
 <style>
-.org-icon {
-    width: 80px;
-    height: 80px;
+.org-icon-large {
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.org-icon-large i {
+    font-size: 2.5rem;
+}
+
+.org-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.relationship-arrow {
-    font-size: 3rem;
-    color: #007bff;
-    animation: pulse 2s infinite;
+.level-badge {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    border-radius: 15px;
 }
 
-.relation-type-badge[data-type="cooperation"] { background-color: #007bff; }
-.relation-type-badge[data-type="reporting"] { background-color: #28a745; }
-.relation-type-badge[data-type="support"] { background-color: #ffc107; color: #000; }
-.relation-type-badge[data-type="partnership"] { background-color: #dc3545; }
-.relation-type-badge[data-type="dependency"] { background-color: #6f42c1; }
-.relation-type-badge[data-type="communication"] { background-color: #17a2b8; }
+.level-0 {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
 
-.tag-badge {
-    display: inline-block;
-    padding: 8px 12px;
-    border-radius: 20px;
-    color: white;
+.level-1 {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+    color: #000;
+}
+
+.level-2 {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+}
+
+.org-level-0 { 
+    color: #dc3545; 
+    font-weight: bold;
+}
+
+.org-level-1 { 
+    color: #fd7e14;
+    font-weight: 600;
+}
+
+.org-level-2 { 
+    color: #17a2b8;
     font-weight: 500;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.strength-stars {
-    letter-spacing: 4px;
+.card:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
-.info-item {
-    transition: transform 0.3s ease;
+.fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.6s ease;
 }
 
-.info-item:hover {
-    transform: translateX(5px);
-}
-
-.impact-metric {
-    transition: transform 0.3s ease;
-}
-
-.impact-metric:hover {
-    transform: translateY(-5px);
-}
-
-.metric-icon {
-    width: 60px;
-    height: 60px;
-}
-
-.org-details-card {
-    background: rgba(248, 249, 250, 0.5);
-    border-radius: 8px;
-    padding: 1rem;
-    height: 100%;
-}
-
-.related-relation-item {
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: background-color 0.3s ease;
-}
-
-.related-relation-item:hover {
-    background-color: rgba(0, 123, 255, 0.1);
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+.fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 </style>
 {% endblock %}
