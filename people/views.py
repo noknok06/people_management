@@ -1,6 +1,6 @@
 # people/views.py
 
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.db.models import Q, Count
 from django.http import JsonResponse
@@ -10,11 +10,17 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 import json
 
-# 既存のインポートに追加
+# モデルのインポート
 from .models import Person, Organization, Tag, OrganizationRelation, PersonRelation
-from .forms import PersonForm, OrganizationForm, PersonSearchForm
+
+# フォームのインポート
+from .forms import (
+    PersonForm, OrganizationForm, PersonSearchForm, 
+    OrganizationRelationForm, PersonRelationForm, TagForm
+)
 
 
 class HomeView(ListView):
@@ -188,6 +194,46 @@ class OrganizationCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('organization_list')
 
 
+class OrganizationUpdateView(LoginRequiredMixin, UpdateView):
+    """組織更新ビュー"""
+    model = Organization
+    form_class = OrganizationForm
+    template_name = 'people/organization_form.html'
+    
+    def get_success_url(self):
+        return reverse_lazy('organization_detail', kwargs={'pk': self.object.pk})
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_edit'] = True
+        return context
+
+
+class OrganizationDeleteView(LoginRequiredMixin, DeleteView):
+    """組織削除ビュー"""
+    model = Organization
+    template_name = 'people/organization_confirm_delete.html'
+    success_url = reverse_lazy('organization_list')
+    
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        
+        # 子組織があるかチェック
+        if self.object.children.exists():
+            messages.error(request, 'この組織には子組織が存在するため、削除できません。先に子組織を削除または移動してください。')
+            return redirect('organization_detail', pk=self.object.pk)
+        
+        # メンバーがいるかチェック
+        if self.object.members.exists():
+            messages.error(request, 'この組織にはメンバーが所属しているため、削除できません。先にメンバーを他の組織に移動してください。')
+            return redirect('organization_detail', pk=self.object.pk)
+        
+        success_url = self.get_success_url()
+        self.object.delete()
+        messages.success(request, f'組織「{self.object.name}」を削除しました。')
+        return redirect(success_url)
+
+
 class RelationshipGraphView(ListView):
     """関連図表示ビュー"""
     template_name = 'people/relationship_graph.html'
@@ -211,7 +257,7 @@ def organization_graph_data(request):
         nodes = []
         for org in organizations:
             nodes.append({
-                'id': str(org.id),  # 文字列に統一
+                'id': str(org.id),
                 'name': org.name,
                 'level': org.level,
                 'member_count': org.members.count(),
@@ -229,8 +275,8 @@ def organization_graph_data(request):
         edges = []
         for relation in relations_query:
             edges.append({
-                'source': str(relation.from_organization.id),  # sourceに変更
-                'target': str(relation.to_organization.id),    # targetに変更
+                'source': str(relation.from_organization.id),
+                'target': str(relation.to_organization.id),
                 'type': relation.relation_type,
                 'strength': relation.strength,
                 'description': relation.description,
@@ -255,7 +301,6 @@ def organization_graph_data(request):
         })
         
     except Exception as e:
-        # エラーが発生した場合はサンプルデータを返す
         return JsonResponse({
             'nodes': [
                 {'id': '1', 'name': 'サンプル部門', 'level': 0, 'member_count': 10, 'full_path': 'サンプル部門'},
@@ -282,7 +327,7 @@ def person_graph_data(request):
         nodes = []
         for person in people_query:
             nodes.append({
-                'id': str(person.id),  # 文字列に統一
+                'id': str(person.id),
                 'name': person.name,
                 'position': person.position,
                 'organization': person.organization.name,
@@ -306,15 +351,14 @@ def person_graph_data(request):
         
         edges = []
         for relation in relations_query:
-            # 両方の人物がノードに含まれている場合のみエッジを追加
             from_id = str(relation.from_person.id)
             to_id = str(relation.to_person.id)
             
             node_ids = [node['id'] for node in nodes]
             if from_id in node_ids and to_id in node_ids:
                 edges.append({
-                    'source': from_id,  # sourceに変更
-                    'target': to_id,    # targetに変更
+                    'source': from_id,
+                    'target': to_id,
                     'type': relation.relation_type,
                     'description': relation.description,
                     'tags': [tag.name for tag in relation.tags.all()],
@@ -339,7 +383,6 @@ def person_graph_data(request):
         })
         
     except Exception as e:
-        # エラーが発生した場合はサンプルデータを返す
         return JsonResponse({
             'nodes': [
                 {'id': '1', 'name': '田中太郎', 'position': '部長', 'organization': 'サンプル部', 'photo_url': None, 'tags': ['管理職']},
@@ -363,6 +406,25 @@ class TagListView(ListView):
             org_relation_count=Count('organizationrelation'),
             person_relation_count=Count('personrelation')
         ).order_by('name')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # 今月作成された新しいタグの数を計算
+        from django.utils import timezone
+        from datetime import datetime
+        
+        try:
+            now = timezone.now()
+            first_day_of_month = datetime(now.year, now.month, 1, tzinfo=now.tzinfo)
+            
+            context['new_tags_this_month'] = Tag.objects.filter(
+                created_at__gte=first_day_of_month
+            ).count() if hasattr(Tag, 'created_at') else 0
+        except:
+            context['new_tags_this_month'] = 0
+        
+        return context
 
 
 class TagCreateView(LoginRequiredMixin, CreateView):
@@ -388,10 +450,8 @@ def create_tag_ajax(request):
         return JsonResponse({'success': False, 'error': 'POSTメソッドが必要です'}, status=405)
     
     try:
-        # JSONデータを取得
         data = json.loads(request.body)
         
-        # データバリデーション
         name = data.get('name', '').strip()
         color = data.get('color', '#007bff')
         description = data.get('description', '').strip()
@@ -399,11 +459,9 @@ def create_tag_ajax(request):
         if not name:
             return JsonResponse({'success': False, 'error': 'タグ名は必須です'})
         
-        # 同名タグの重複チェック
         if Tag.objects.filter(name=name).exists():
             return JsonResponse({'success': False, 'error': 'そのタグ名は既に存在します'})
         
-        # タグ作成
         tag = Tag.objects.create(
             name=name,
             color=color,
@@ -437,7 +495,6 @@ def update_tag_ajax(request, tag_id):
         tag = get_object_or_404(Tag, id=tag_id)
         data = json.loads(request.body)
         
-        # データ更新
         tag.name = data.get('name', tag.name).strip()
         tag.color = data.get('color', tag.color)
         tag.description = data.get('description', tag.description).strip()
@@ -445,7 +502,6 @@ def update_tag_ajax(request, tag_id):
         if not tag.name:
             return JsonResponse({'success': False, 'error': 'タグ名は必須です'})
         
-        # 同名タグの重複チェック（自分以外）
         if Tag.objects.filter(name=tag.name).exclude(id=tag.id).exists():
             return JsonResponse({'success': False, 'error': 'そのタグ名は既に存在します'})
         
@@ -478,7 +534,6 @@ def delete_tag_ajax(request, tag_id):
     try:
         tag = get_object_or_404(Tag, id=tag_id)
         
-        # 使用中のタグかチェック
         person_count = tag.person_set.count()
         org_relation_count = tag.organizationrelation_set.count()
         person_relation_count = tag.personrelation_set.count()
@@ -523,78 +578,7 @@ def get_tag_details(request, tag_id):
         return JsonResponse({'success': False, 'error': f'サーバーエラー: {str(e)}'}, status=500)
 
 
-# 既存のTagListViewを更新
-class TagListView(ListView):
-    """タグ一覧ビュー"""
-    model = Tag
-    template_name = 'people/tag_list.html'
-    context_object_name = 'tags'
-    
-    def get_queryset(self):
-        return Tag.objects.annotate(
-            person_count=Count('person'),
-            org_relation_count=Count('organizationrelation'),
-            person_relation_count=Count('personrelation')
-        ).order_by('name')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # 今月作成された新しいタグの数を計算
-        from django.utils import timezone
-        from datetime import datetime
-        
-        try:
-            now = timezone.now()
-            first_day_of_month = datetime(now.year, now.month, 1, tzinfo=now.tzinfo)
-            
-            context['new_tags_this_month'] = Tag.objects.filter(
-                created_at__gte=first_day_of_month
-            ).count() if hasattr(Tag, 'created_at') else 0
-        except:
-            context['new_tags_this_month'] = 0
-        
-        return context
-
-class OrganizationUpdateView(LoginRequiredMixin, UpdateView):
-    """組織更新ビュー"""
-    model = Organization
-    form_class = OrganizationForm
-    template_name = 'people/organization_form.html'
-    
-    def get_success_url(self):
-        return reverse_lazy('organization_detail', kwargs={'pk': self.object.pk})
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['is_edit'] = True
-        return context
-
-
-class OrganizationDeleteView(LoginRequiredMixin, DeleteView):
-    """組織削除ビュー"""
-    model = Organization
-    template_name = 'people/organization_confirm_delete.html'
-    success_url = reverse_lazy('organization_list')
-    
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        
-        # 子組織があるかチェック
-        if self.object.children.exists():
-            messages.error(request, 'この組織には子組織が存在するため、削除できません。先に子組織を削除または移動してください。')
-            return redirect('organization_detail', pk=self.object.pk)
-        
-        # メンバーがいるかチェック
-        if self.object.members.exists():
-            messages.error(request, 'この組織にはメンバーが所属しているため、削除できません。先にメンバーを他の組織に移動してください。')
-            return redirect('organization_detail', pk=self.object.pk)
-        
-        success_url = self.get_success_url()
-        self.object.delete()
-        messages.success(request, f'組織「{self.object.name}」を削除しました。')
-        return redirect(success_url)
-
+# 組織関係管理のビューを追加
 class OrganizationRelationListView(ListView):
     """組織関係一覧ビュー"""
     model = OrganizationRelation
@@ -607,7 +591,6 @@ class OrganizationRelationListView(ListView):
             'from_organization', 'to_organization'
         ).prefetch_related('tags').order_by('-created_at')
         
-        # 検索機能
         search_query = self.request.GET.get('search')
         if search_query:
             queryset = queryset.filter(
@@ -616,17 +599,14 @@ class OrganizationRelationListView(ListView):
                 Q(description__icontains=search_query)
             )
         
-        # 関係タイプフィルタ
         relation_type = self.request.GET.get('relation_type')
         if relation_type:
             queryset = queryset.filter(relation_type=relation_type)
             
-        # 強度フィルタ
         strength = self.request.GET.get('strength')
         if strength:
             queryset = queryset.filter(strength=strength)
             
-        # タグフィルタ
         tag_filter = self.request.GET.get('tag')
         if tag_filter:
             queryset = queryset.filter(tags__id=tag_filter)
@@ -638,12 +618,12 @@ class OrganizationRelationListView(ListView):
         context['relation_types'] = OrganizationRelation.RELATION_TYPES
         context['strength_choices'] = [(i, str(i)) for i in range(1, 6)]
         context['tags'] = Tag.objects.all()
+        context['organizations'] = Organization.objects.all()
         context['current_search'] = self.request.GET.get('search', '')
         context['current_relation_type'] = self.request.GET.get('relation_type', '')
         context['current_strength'] = self.request.GET.get('strength', '')
         context['current_tag'] = self.request.GET.get('tag', '')
         
-        # 統計情報
         context['total_relations'] = OrganizationRelation.objects.count()
         context['relation_type_stats'] = OrganizationRelation.objects.values(
             'relation_type'
@@ -727,21 +707,18 @@ def create_organization_relation_ajax(request):
         description = data.get('description', '').strip()
         strength = data.get('strength', 1)
         
-        # バリデーション
         if not from_org_id or not to_org_id:
             return JsonResponse({'success': False, 'error': '組織を選択してください'})
             
         if from_org_id == to_org_id:
             return JsonResponse({'success': False, 'error': '同じ組織同士の関係は作成できません'})
         
-        # 組織の存在確認
         try:
             from_org = Organization.objects.get(id=from_org_id)
             to_org = Organization.objects.get(id=to_org_id)
         except Organization.DoesNotExist:
             return JsonResponse({'success': False, 'error': '指定された組織が見つかりません'})
         
-        # 重複チェック
         if OrganizationRelation.objects.filter(
             from_organization=from_org,
             to_organization=to_org,
@@ -749,7 +726,6 @@ def create_organization_relation_ajax(request):
         ).exists():
             return JsonResponse({'success': False, 'error': '同じ関係が既に存在します'})
         
-        # 関係作成
         relation = OrganizationRelation.objects.create(
             from_organization=from_org,
             to_organization=to_org,
@@ -801,14 +777,12 @@ def organization_relation_matrix_view(request):
         'from_organization', 'to_organization'
     ).all()
     
-    # マトリックス用のデータ構造を作成
     matrix = {}
     for org in organizations:
         matrix[org.id] = {}
         for other_org in organizations:
             matrix[org.id][other_org.id] = []
     
-    # 関係をマトリックスに配置
     for relation in relations:
         from_id = relation.from_organization.id
         to_id = relation.to_organization.id
@@ -821,4 +795,4 @@ def organization_relation_matrix_view(request):
         'relation_types': OrganizationRelation.RELATION_TYPES,
     }
     
-    return render(request, 'people/organization_relation_matrix.html', context)        
+    return render(request, 'people/organization_relation_matrix.html', context)

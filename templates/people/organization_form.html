@@ -1,11 +1,11 @@
-<!-- templates/people/organization_form.html -->
+<!-- templates/people/organization_relation_form.html -->
 {% extends 'base.html' %}
 
 {% block title %}
     {% if object %}
-        {{ object.name }}を編集 - {{ block.super }}
+        組織関係を編集 - {{ block.super }}
     {% else %}
-        新しい組織を追加 - {{ block.super }}
+        新しい組織関係を追加 - {{ block.super }}
     {% endif %}
 {% endblock %}
 
@@ -15,506 +15,391 @@
         <h1 class="h2 animate__animated animate__fadeInDown">
             {% if object %}
                 <i class="bi bi-pencil-square text-warning me-3"></i>
-                {{ object.name }}を編集
+                組織関係を編集
             {% else %}
-                <i class="bi bi-building-add text-success me-3"></i>
-                新しい組織を追加
+                <i class="bi bi-plus-circle text-success me-3"></i>
+                新しい組織関係を追加
             {% endif %}
         </h1>
         <p class="text-muted animate__animated animate__fadeInUp animate__delay-1s">
             {% if object %}
-                組織情報を更新して最新の構造を維持
+                組織間の関係を更新して、正確な連携構造を維持
             {% else %}
-                企業の組織構造を拡張して効率的な管理を実現
+                組織間の関係を定義して、効率的な連携を促進
             {% endif %}
         </p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <div class="btn-group">
-            {% if object %}
-                <a href="{% url 'organization_detail' object.pk %}" class="btn btn-outline-info animate__animated animate__fadeInRight">
-                    <i class="bi bi-eye me-2"></i> 詳細表示
-                </a>
-            {% endif %}
-            <a href="{% url 'organization_list' %}" class="btn btn-outline-secondary animate__animated animate__fadeInRight {% if object %}animate__delay-1s{% endif %}">
-                <i class="bi bi-arrow-left me-2"></i> 一覧に戻る
-            </a>
-        </div>
+        <a href="{% url 'organization_relation_list' %}" class="btn btn-outline-secondary animate__animated animate__fadeInRight">
+            <i class="bi bi-arrow-left me-2"></i> 一覧に戻る
+        </a>
     </div>
 </div>
 
-<div class="row">
-    <!-- Main Form -->
-    <div class="col-md-8">
-        <form method="post" class="needs-validation" novalidate id="organizationForm">
-            {% csrf_token %}
-            
-            <!-- Basic Information Section -->
+<form method="post" class="needs-validation" novalidate id="relationForm">
+    {% csrf_token %}
+    
+    <div class="row">
+        <!-- Main Form -->
+        <div class="col-lg-8">
+            <!-- Basic Relationship Info -->
             <div class="card mb-4 animate__animated animate__fadeInUp">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="bi bi-building-fill me-2"></i>基本情報
+                        <i class="bi bi-diagram-2-fill me-2"></i>基本関係情報
+                        <span class="badge bg-primary ms-2">必須</span>
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.name.id_for_label }}" class="form-label">
-                                <i class="bi bi-building me-1"></i>組織名 <span class="text-danger">*</span>
+                        <div class="col-md-6 mb-4">
+                            <label for="{{ form.from_organization.id_for_label }}" class="form-label fw-semibold">
+                                <i class="bi bi-building me-1 text-primary"></i>
+                                関係元組織 <span class="text-danger">*</span>
                             </label>
-                            <div class="input-group">
-                                {{ form.name }}
-                                <div class="input-group-text">
-                                    <i class="bi bi-check-circle text-success" id="nameValidIcon" style="display: none;"></i>
+                            <div class="organization-selector">
+                                {{ form.from_organization }}
+                                {% if form.from_organization.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.from_organization.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    関係の出発点となる組織を選択してください
                                 </div>
-                            </div>
-                            {% if form.name.errors %}
-                                <div class="invalid-feedback d-block">
-                                    <i class="bi bi-exclamation-triangle me-1"></i>{{ form.name.errors.0 }}
-                                </div>
-                            {% endif %}
-                            <div class="form-text">
-                                正式な組織名を入力してください
                             </div>
                         </div>
                         
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.level.id_for_label }}" class="form-label">
-                                <i class="bi bi-layers me-1"></i>階層レベル <span class="text-danger">*</span>
+                        <div class="col-md-6 mb-4">
+                            <label for="{{ form.to_organization.id_for_label }}" class="form-label fw-semibold">
+                                <i class="bi bi-building-check me-1 text-success"></i>
+                                関係先組織 <span class="text-danger">*</span>
                             </label>
-                            <div class="level-selector">
-                                {{ form.level }}
-                                <div class="level-preview mt-2" id="levelPreview">
-                                    <div class="level-indicator">
-                                        <div class="level-step active" data-level="0">
-                                            <i class="bi bi-building-fill"></i>
-                                            <span>部門</span>
-                                        </div>
-                                        <div class="level-step" data-level="1">
-                                            <i class="bi bi-diagram-2-fill"></i>
-                                            <span>部</span>
-                                        </div>
-                                        <div class="level-step" data-level="2">
-                                            <i class="bi bi-diagram-3-fill"></i>
-                                            <span>課</span>
-                                        </div>
+                            <div class="organization-selector">
+                                {{ form.to_organization }}
+                                {% if form.to_organization.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.to_organization.errors.0 }}
                                     </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    関係の対象となる組織を選択してください
                                 </div>
                             </div>
-                            {% if form.level.errors %}
-                                <div class="invalid-feedback d-block">
-                                    <i class="bi bi-exclamation-triangle me-1"></i>{{ form.level.errors.0 }}
+                        </div>
+                    </div>
+                    
+                    <!-- Relationship Visualization -->
+                    <div class="relationship-preview mb-4 p-4 bg-light rounded" id="relationshipPreview" style="display: none;">
+                        <div class="text-center">
+                            <div class="d-flex align-items-center justify-content-center gap-4">
+                                <div class="org-box from-org">
+                                    <div class="org-icon bg-primary text-white">
+                                        <i class="bi bi-building"></i>
+                                    </div>
+                                    <span class="org-name">関係元組織</span>
                                 </div>
-                            {% endif %}
+                                
+                                <div class="relation-arrow">
+                                    <i class="bi bi-arrow-right fs-2 text-primary"></i>
+                                </div>
+                                
+                                <div class="org-box to-org">
+                                    <div class="org-icon bg-success text-white">
+                                        <i class="bi bi-building-check"></i>
+                                    </div>
+                                    <span class="org-name">関係先組織</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-12 mb-3">
-                            <label for="{{ form.parent.id_for_label }}" class="form-label">
-                                <i class="bi bi-diagram-2 me-1"></i>親組織
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.relation_type.id_for_label }}" class="form-label fw-semibold">
+                                <i class="bi bi-tags me-1 text-info"></i>
+                                関係の種類 <span class="text-danger">*</span>
                             </label>
-                            <div class="parent-selector">
-                                {{ form.parent }}
-                                <div class="hierarchy-preview mt-2" id="hierarchyPreview" style="display: none;">
-                                    <div class="hierarchy-path">
-                                        <!-- Hierarchy will be populated dynamically -->
-                                    </div>
-                                </div>
-                            </div>
-                            {% if form.parent.errors %}
+                            {{ form.relation_type }}
+                            {% if form.relation_type.errors %}
                                 <div class="invalid-feedback d-block">
-                                    <i class="bi bi-exclamation-triangle me-1"></i>{{ form.parent.errors.0 }}
+                                    {{ form.relation_type.errors.0 }}
                                 </div>
                             {% endif %}
-                            <div class="form-text">
-                                階層レベルに応じて適切な親組織を選択してください
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.strength.id_for_label }}" class="form-label fw-semibold">
+                                <i class="bi bi-speedometer me-1 text-warning"></i>
+                                関係の強さ
+                            </label>
+                            <div class="strength-selector">
+                                {{ form.strength }}
+                                <div class="strength-preview mt-2" id="strengthPreview">
+                                    <span class="me-2">強さ:</span>
+                                    <span id="strengthStars">
+                                        <i class="bi bi-star text-muted"></i>
+                                        <i class="bi bi-star text-muted"></i>
+                                        <i class="bi bi-star text-muted"></i>
+                                        <i class="bi bi-star text-muted"></i>
+                                        <i class="bi bi-star text-muted"></i>
+                                    </span>
+                                </div>
                             </div>
+                            {% if form.strength.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.strength.errors.0 }}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Detailed Information Section -->
+            <!-- Description and Details -->
             <div class="card mb-4 animate__animated animate__fadeInUp animate__delay-1s">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="bi bi-journal-text me-2"></i>詳細情報
+                        <i class="bi bi-chat-text me-2"></i>詳細情報
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label for="{{ form.description.id_for_label }}" class="form-label">
-                            <i class="bi bi-card-text me-1"></i>組織の説明・役割
+                    <div class="mb-4">
+                        <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-journal-text me-1 text-primary"></i>
+                            関係の説明
                         </label>
-                        {{ form.description }}
-                        <div class="character-counter">
-                            <small class="text-muted">
-                                <span id="descriptionCount">0</span> / 1000文字
-                            </small>
+                        <div class="position-relative">
+                            {{ form.description }}
+                            <div class="character-counter position-absolute bottom-0 end-0 me-2 mb-2">
+                                <small class="text-muted">
+                                    <span id="descriptionCounter">0</span>/500文字
+                                </small>
+                            </div>
                         </div>
                         {% if form.description.errors %}
                             <div class="invalid-feedback d-block">
-                                <i class="bi bi-exclamation-triangle me-1"></i>{{ form.description.errors.0 }}
+                                {{ form.description.errors.0 }}
                             </div>
                         {% endif %}
                         <div class="form-text">
-                            この組織の役割、責任範囲、業務内容などを記載してください
-                        </div>
-                    </div>
-                    
-                    <!-- Organization Template Selection -->
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="bi bi-clipboard-check me-1"></i>組織テンプレート（任意）
-                        </label>
-                        <div class="template-selector">
-                            <div class="row">
-                                <div class="col-md-4 mb-2">
-                                    <div class="template-card" data-template="sales">
-                                        <div class="template-icon">
-                                            <i class="bi bi-graph-up-arrow text-primary"></i>
-                                        </div>
-                                        <div class="template-info">
-                                            <h6>営業部門</h6>
-                                            <small class="text-muted">売上・顧客開拓担当</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <div class="template-card" data-template="tech">
-                                        <div class="template-icon">
-                                            <i class="bi bi-gear-fill text-success"></i>
-                                        </div>
-                                        <div class="template-info">
-                                            <h6>技術部門</h6>
-                                            <small class="text-muted">開発・システム担当</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <div class="template-card" data-template="admin">
-                                        <div class="template-icon">
-                                            <i class="bi bi-clipboard-data text-warning"></i>
-                                        </div>
-                                        <div class="template-info">
-                                            <h6>管理部門</h6>
-                                            <small class="text-muted">人事・総務・経理</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-text">
-                            テンプレートを選択すると、一般的な説明文が自動入力されます
+                            <i class="bi bi-lightbulb me-1"></i>
+                            この関係の詳細、背景、重要性などを記載してください
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Organization Goals & KPIs Section -->
+            <!-- Tags -->
             <div class="card mb-4 animate__animated animate__fadeInUp animate__delay-2s">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
-                        <i class="bi bi-target me-2"></i>目標・KPI設定
+                        <i class="bi bi-tags-fill me-2"></i>関連タグ
                     </h5>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="enableKPIs">
-                        <label class="form-check-label" for="enableKPIs">
-                            KPI管理を有効化
-                        </label>
-                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createTagModal">
+                        <i class="bi bi-plus-circle me-1"></i>新規作成
+                    </button>
                 </div>
-                <div class="card-body" id="kpiSection" style="display: none;">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="targetMembers" class="form-label">
-                                <i class="bi bi-people me-1"></i>目標メンバー数
-                            </label>
-                            <input type="number" class="form-control" id="targetMembers" min="1" placeholder="例: 50">
-                            <div class="form-text">この組織の理想的なメンバー数</div>
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label for="budgetAllocation" class="form-label">
-                                <i class="bi bi-currency-yen me-1"></i>予算配分（万円）
-                            </label>
-                            <input type="number" class="form-control" id="budgetAllocation" min="0" placeholder="例: 5000">
-                            <div class="form-text">年間予算の目安</div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="organizationGoals" class="form-label">
-                            <i class="bi bi-bullseye me-1"></i>組織目標
-                        </label>
-                        <textarea class="form-control" id="organizationGoals" rows="3" 
-                                  placeholder="この組織が達成すべき主要な目標を記載してください"></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Form Actions -->
-            <div class="card animate__animated animate__fadeInUp animate__delay-3s">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="form-check">
-                            {% if not object %}
-                                <input class="form-check-input" type="checkbox" id="createChildOrgs">
-                                <label class="form-check-label" for="createChildOrgs">
-                                    子組織のテンプレートも同時作成
-                                </label>
-                            {% else %}
-                                <small class="text-muted">
-                                    <i class="bi bi-info-circle me-1"></i>
-                                    最終更新: {{ object.updated_at|date:"Y年m月d日 H:i" }}
-                                </small>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="btn-group">
-                            <button type="submit" class="btn btn-{% if object %}warning{% else %}success{% endif %} btn-lg" id="submitBtn">
-                                {% if object %}
-                                    <i class="bi bi-check-circle me-2"></i>更新する
-                                {% else %}
-                                    <i class="bi bi-plus-circle me-2"></i>作成する
-                                {% endif %}
-                            </button>
-                            
-                            <button type="button" class="btn btn-outline-{% if object %}warning{% else %}success{% endif %} dropdown-toggle dropdown-toggle-split btn-lg" 
-                                    data-bs-toggle="dropdown">
-                                <span class="visually-hidden">その他のオプション</span>
-                            </button>
-                            <ul class="dropdown-menu">
-                                {% if object %}
-                                    <li><button class="dropdown-item" type="button" id="saveAndContinue">
-                                        <i class="bi bi-check-circle me-2"></i>更新して編集を続ける
-                                    </button></li>
-                                    <li><button class="dropdown-item" type="button" id="saveAndAddChild">
-                                        <i class="bi bi-diagram-3 me-2"></i>更新して子組織を作成
-                                    </button></li>
-                                {% else %}
-                                    <li><button class="dropdown-item" type="button" id="saveAndAddAnother">
-                                        <i class="bi bi-plus-square me-2"></i>保存して続けて作成
-                                    </button></li>
-                                    <li><button class="dropdown-item" type="button" id="saveAndAddChild">
-                                        <i class="bi bi-diagram-3 me-2"></i>保存して子組織を作成
-                                    </button></li>
-                                {% endif %}
-                                <li><hr class="dropdown-divider"></li>
-                                <li><button class="dropdown-item" type="button" id="saveAsDraft">
-                                    <i class="bi bi-file-earmark me-2"></i>下書きとして保存
-                                </button></li>
-                            </ul>
+                    <div class="tags-selection-area">
+                        <div class="row" id="tagsContainer">
+                            {% for choice in form.tags %}
+                                <div class="col-md-4 col-sm-6 mb-3">
+                                    <div class="tag-option">
+                                        <input type="checkbox" class="btn-check tag-checkbox" 
+                                               id="{{ choice.id_for_label }}" name="{{ choice.name }}" 
+                                               value="{{ choice.choice_value }}" 
+                                               {% if choice.tag.checked %}checked{% endif %}>
+                                        <label class="btn btn-outline-primary w-100 tag-label" 
+                                               for="{{ choice.id_for_label }}"
+                                               data-color="{{ choice.choice_label.instance.color|default:'#007bff' }}">
+                                            <div class="d-flex align-items-center">
+                                                <div class="tag-color-indicator me-2"></div>
+                                                <span class="flex-grow-1">{{ choice.choice_label }}</span>
+                                                <i class="bi bi-check-circle-fill tag-check-icon"></i>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            {% endfor %}
                         </div>
                     </div>
                     
-                    <div class="mt-3 d-flex justify-content-center">
-                        <div class="btn-group">
-                            <a href="{% url 'organization_list' %}" class="btn btn-outline-secondary">
-                                <i class="bi bi-x-circle me-2"></i>キャンセル
-                            </a>
-                            {% if object %}
-                                <a href="{% url 'organization_detail' object.pk %}" class="btn btn-outline-info">
-                                    <i class="bi bi-eye me-2"></i>詳細表示
-                                </a>
-                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal">
-                                    <i class="bi bi-trash me-2"></i>削除
-                                </button>
-                            {% endif %}
-                            <button type="button" class="btn btn-outline-warning" id="previewBtn">
-                                <i class="bi bi-eye-slash me-2"></i>プレビュー
-                            </button>
+                    {% if form.tags.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.tags.errors.0 }}
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Delete Confirmation Modal (編集時のみ表示) -->
-            {% if object %}
-            <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title text-danger">
-                                <i class="bi bi-exclamation-triangle me-2"></i>削除の確認
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p>組織「<strong>{{ object.name }}</strong>」を削除しますか？</p>
-                            
-                            <div class="alert alert-warning">
-                                <small>
-                                    <strong>注意:</strong> メンバーや子組織が存在する場合は削除できません。
-                                    詳細な削除確認は専用ページで行われます。
-                                </small>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                            <a href="{% url 'organization_delete' object.pk %}" class="btn btn-danger">
-                                <i class="bi bi-trash me-2"></i>削除ページへ
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </form>
-    </div>
-    
-    <!-- Sidebar -->
-    <div class="col-md-4">
-        <!-- Organization Structure Guide -->
-        <div class="card mb-4 animate__animated animate__fadeInRight">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="bi bi-info-circle me-2"></i>組織階層ガイド
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="hierarchy-guide">
-                    <div class="level-guide mb-3">
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="level-badge bg-danger text-white me-3">
-                                <i class="bi bi-building"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 text-danger">部門 (Level 0)</h6>
-                                <small class="text-muted">最上位の組織単位</small>
-                            </div>
-                        </div>
-                        <p class="small text-muted ps-5">
-                            例: 営業部門、技術部門、管理部門など
-                        </p>
-                    </div>
+                    {% endif %}
                     
-                    <div class="level-guide mb-3">
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="level-badge bg-warning text-white me-3">
-                                <i class="bi bi-diagram-2"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 text-warning">部 (Level 1)</h6>
-                                <small class="text-muted">部門の下位組織</small>
-                            </div>
-                        </div>
-                        <p class="small text-muted ps-5">
-                            例: 法人営業部、システム開発部、人事部など
-                        </p>
-                    </div>
-                    
-                    <div class="level-guide">
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="level-badge bg-info text-white me-3">
-                                <i class="bi bi-diagram-3"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 text-info">課 (Level 2)</h6>
-                                <small class="text-muted">最小の組織単位</small>
-                            </div>
-                        </div>
-                        <p class="small text-muted ps-5">
-                            例: 営業推進課、品質管理課、採用課など
-                        </p>
+                    <!-- Selected Tags Preview -->
+                    <div class="selected-tags-preview mt-3" id="selectedTagsPreview">
+                        <h6 class="text-muted small mb-2">選択中のタグ:</h6>
+                        <div id="selectedTagsList"></div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Current Structure Preview -->
-        {% if object %}
-            <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-1s">
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Form Progress -->
+            <div class="card mb-4 animate__animated animate__fadeInRight">
                 <div class="card-header">
                     <h6 class="mb-0">
-                        <i class="bi bi-eye me-2"></i>現在の構造
+                        <i class="bi bi-list-check me-2"></i>入力進捗
                     </h6>
                 </div>
                 <div class="card-body">
-                    <div class="current-structure">
-                        <div class="structure-path">
-                            {% if object.parent.parent %}
-                                <div class="structure-item">
-                                    <i class="bi bi-building text-danger me-2"></i>
-                                    <span>{{ object.parent.parent.name }}</span>
-                                </div>
-                                <div class="structure-connector"></div>
-                            {% endif %}
-                            
-                            {% if object.parent %}
-                                <div class="structure-item">
-                                    <i class="bi bi-diagram-2 text-warning me-2"></i>
-                                    <span>{{ object.parent.name }}</span>
-                                </div>
-                                <div class="structure-connector"></div>
-                            {% endif %}
-                            
-                            <div class="structure-item current">
-                                <i class="bi bi-{% if object.level == 0 %}building{% elif object.level == 1 %}diagram-2{% else %}diagram-3{% endif %} text-primary me-2"></i>
-                                <span class="fw-bold">{{ object.name }}</span>
-                            </div>
+                    <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar bg-success" id="formProgress" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    
+                    <div class="progress-checklist">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="progressFromOrg" disabled>
+                            <label class="form-check-label text-muted" for="progressFromOrg">
+                                関係元組織
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="progressToOrg" disabled>
+                            <label class="form-check-label text-muted" for="progressToOrg">
+                                関係先組織
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="progressType" disabled>
+                            <label class="form-check-label text-muted" for="progressType">
+                                関係の種類
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="progressDescription" disabled>
+                            <label class="form-check-label text-muted" for="progressDescription">
+                                詳細説明
+                            </label>
                         </div>
                     </div>
                 </div>
             </div>
-        {% endif %}
-        
-        <!-- Quick Stats -->
-        <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-2s">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="bi bi-graph-up me-2"></i>組織統計
-                </h6>
+            
+            <!-- Relationship Types Guide -->
+            <div class="card mb-4 animate__animated animate__fadeInRight animate__delay-1s">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>関係の種類ガイド
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="relation-type-guide">
+                        <div class="type-item mb-3">
+                            <div class="d-flex align-items-center mb-1">
+                                <div class="type-color me-2" style="background-color: #007bff;"></div>
+                                <strong class="small">協力関係</strong>
+                            </div>
+                            <p class="small text-muted mb-0">共同でプロジェクトや業務を進める関係</p>
+                        </div>
+                        
+                        <div class="type-item mb-3">
+                            <div class="d-flex align-items-center mb-1">
+                                <div class="type-color me-2" style="background-color: #28a745;"></div>
+                                <strong class="small">報告関係</strong>
+                            </div>
+                            <p class="small text-muted mb-0">上下関係に基づく報告・承認の関係</p>
+                        </div>
+                        
+                        <div class="type-item mb-3">
+                            <div class="d-flex align-items-center mb-1">
+                                <div class="type-color me-2" style="background-color: #ffc107;"></div>
+                                <strong class="small">サポート関係</strong>
+                            </div>
+                            <p class="small text-muted mb-0">一方が他方を支援・補助する関係</p>
+                        </div>
+                        
+                        <div class="type-item">
+                            <div class="d-flex align-items-center mb-1">
+                                <div class="type-color me-2" style="background-color: #dc3545;"></div>
+                                <strong class="small">パートナー関係</strong>
+                            </div>
+                            <p class="small text-muted mb-0">対等な立場での戦略的提携関係</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="stat-item d-flex justify-content-between align-items-center mb-2">
-                    <span class="small text-muted">総組織数</span>
-                    <span class="badge bg-primary">{{ total_organizations|default:"0" }}</span>
+            
+            <!-- Current Relationship (Edit Mode) -->
+            {% if object %}
+                <div class="card animate__animated animate__fadeInRight animate__delay-2s">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-eye me-2"></i>現在の関係
+                        </h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="current-relation-display">
+                            <div class="org-name mb-2">
+                                <strong>{{ object.from_organization.name }}</strong>
+                            </div>
+                            <div class="relation-arrow mb-2">
+                                <i class="bi bi-arrow-down fs-4 text-primary"></i>
+                                <div class="relation-type-badge">
+                                    <span class="badge bg-primary">{{ object.get_relation_type_display }}</span>
+                                </div>
+                            </div>
+                            <div class="org-name">
+                                <strong>{{ object.to_organization.name }}</strong>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <small class="text-muted">強さ: </small>
+                                {% for i in "12345"|make_list %}
+                                    <i class="bi bi-star{% if forloop.counter <= object.strength %}-fill text-warning{% else %} text-muted{% endif %}"></i>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="stat-item d-flex justify-content-between align-items-center mb-2">
-                    <span class="small text-muted">部門数</span>
-                    <span class="badge bg-danger">{{ department_count|default:"0" }}</span>
-                </div>
-                <div class="stat-item d-flex justify-content-between align-items-center mb-2">
-                    <span class="small text-muted">部数</span>
-                    <span class="badge bg-warning">{{ division_count|default:"0" }}</span>
-                </div>
-                <div class="stat-item d-flex justify-content-between align-items-center">
-                    <span class="small text-muted">課数</span>
-                    <span class="badge bg-info">{{ section_count|default:"0" }}</span>
-                </div>
-            </div>
+            {% endif %}
         </div>
-        
-        <!-- Tips -->
-        <div class="card animate__animated animate__fadeInRight animate__delay-3s">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="bi bi-lightbulb me-2"></i>組織作成のコツ
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="tip-item mb-3">
-                    <i class="bi bi-check-circle text-success me-2"></i>
-                    <small>明確で理解しやすい組織名を選択する</small>
-                </div>
-                <div class="tip-item mb-3">
-                    <i class="bi bi-check-circle text-success me-2"></i>
-                    <small>組織の役割と責任を明確に定義する</small>
-                </div>
-                <div class="tip-item mb-3">
-                    <i class="bi bi-check-circle text-success me-2"></i>
-                    <small>適切な階層レベルを選択する</small>
-                </div>
-                <div class="tip-item">
-                    <i class="bi bi-check-circle text-success me-2"></i>
-                    <small>将来の拡張を考慮した構造にする</small>
+    </div>
+    
+    <!-- Form Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card animate__animated animate__fadeInUp animate__delay-3s">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <button type="submit" class="btn btn-primary btn-lg me-3" id="submitBtn">
+                                {% if object %}
+                                    <i class="bi bi-check-circle me-2"></i>更新
+                                {% else %}
+                                    <i class="bi bi-plus-circle me-2"></i>作成
+                                {% endif %}
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg" id="previewBtn">
+                                <i class="bi bi-eye me-2"></i>プレビュー
+                            </button>
+                        </div>
+                        
+                        <div>
+                            <a href="{% url 'organization_relation_list' %}" class="btn btn-outline-secondary me-2">
+                                <i class="bi bi-x-circle me-2"></i>キャンセル
+                            </a>
+                            {% if object %}
+                                <a href="{% url 'organization_relation_detail' object.pk %}" class="btn btn-outline-info">
+                                    <i class="bi bi-eye me-2"></i>詳細表示
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</form>
 
 <!-- Preview Modal -->
 <div class="modal fade" id="previewModal" tabindex="-1">
@@ -522,44 +407,17 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="bi bi-eye me-2"></i>組織プレビュー
+                    <i class="bi bi-eye me-2"></i>関係プレビュー
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div id="previewContent">
-                    <!-- Preview content will be populated dynamically -->
+                    <!-- Preview content will be populated -->
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Child Organizations Template Modal -->
-<div class="modal fade" id="childOrgsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="bi bi-diagram-3 me-2"></i>子組織テンプレート作成
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted mb-3">選択した組織テンプレートに基づいて、一般的な子組織を自動作成します。</p>
-                
-                <div id="childOrgsList">
-                    <!-- Child organizations will be listed here -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                <button type="button" class="btn btn-primary" id="createChildOrgsBtn">
-                    <i class="bi bi-plus-circle me-2"></i>子組織を作成
-                </button>
             </div>
         </div>
     </div>
@@ -569,250 +427,190 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('organizationForm');
-    const nameInput = document.getElementById('{{ form.name.id_for_label }}');
-    const levelSelect = document.getElementById('{{ form.level.id_for_label }}');
-    const parentSelect = document.getElementById('{{ form.parent.id_for_label }}');
-    const descriptionTextarea = document.getElementById('{{ form.description.id_for_label }}');
+    const form = document.getElementById('relationForm');
+    const submitBtn = document.getElementById('submitBtn');
     
-    // Real-time validation for name
-    nameInput.addEventListener('input', function() {
-        const isValid = this.value.trim().length >= 2;
-        const icon = document.getElementById('nameValidIcon');
+    // Form validation and progress tracking
+    function updateFormProgress() {
+        const fromOrg = document.getElementById('{{ form.from_organization.id_for_label }}').value;
+        const toOrg = document.getElementById('{{ form.to_organization.id_for_label }}').value;
+        const relationType = document.getElementById('{{ form.relation_type.id_for_label }}').value;
+        const description = document.getElementById('{{ form.description.id_for_label }}').value;
         
-        if (isValid) {
-            this.classList.remove('is-invalid');
-            this.classList.add('is-valid');
-            icon.style.display = 'block';
-        } else {
-            this.classList.remove('is-valid');
-            this.classList.add('is-invalid');
-            icon.style.display = 'none';
-        }
-    });
-    
-    // Level selection handling
-    levelSelect.addEventListener('change', function() {
-        updateLevelPreview(this.value);
-        updateParentOptions(this.value);
-    });
-    
-    function updateLevelPreview(level) {
-        const steps = document.querySelectorAll('.level-step');
-        steps.forEach((step, index) => {
-            if (index <= parseInt(level)) {
-                step.classList.add('active');
-            } else {
-                step.classList.remove('active');
-            }
+        const checks = [
+            { field: fromOrg, checkbox: 'progressFromOrg' },
+            { field: toOrg, checkbox: 'progressToOrg' },
+            { field: relationType, checkbox: 'progressType' },
+            { field: description.trim(), checkbox: 'progressDescription' }
+        ];
+        
+        let completed = 0;
+        checks.forEach(check => {
+            const checkbox = document.getElementById(check.checkbox);
+            const isCompleted = check.field !== '';
+            checkbox.checked = isCompleted;
+            if (isCompleted) completed++;
         });
         
-        // Update parent selector visibility
-        const parentContainer = parentSelect.closest('.col-md-12');
-        if (level === '0') {
-            parentContainer.style.display = 'none';
-            parentSelect.value = '';
-        } else {
-            parentContainer.style.display = 'block';
-        }
+        const progress = (completed / checks.length) * 100;
+        document.getElementById('formProgress').style.width = progress + '%';
+        
+        // Enable submit button if required fields are filled
+        const canSubmit = fromOrg && toOrg && relationType;
+        submitBtn.disabled = !canSubmit;
+        
+        // Update relationship preview
+        updateRelationshipPreview();
     }
     
-    function updateParentOptions(level) {
-        // This would typically fetch parent options via AJAX
-        // For now, we'll just show/hide the parent selector
-        if (level === '0') {
-            parentSelect.disabled = true;
-            parentSelect.value = '';
-        } else {
-            parentSelect.disabled = false;
-        }
-    }
-    
-    // Parent selection handling
-    parentSelect.addEventListener('change', function() {
-        updateHierarchyPreview();
-    });
-    
-    function updateHierarchyPreview() {
-        const selectedOption = parentSelect.options[parentSelect.selectedIndex];
-        const hierarchyPreview = document.getElementById('hierarchyPreview');
+    function updateRelationshipPreview() {
+        const fromOrgSelect = document.getElementById('{{ form.from_organization.id_for_label }}');
+        const toOrgSelect = document.getElementById('{{ form.to_organization.id_for_label }}');
+        const preview = document.getElementById('relationshipPreview');
         
-        if (selectedOption.value) {
-            hierarchyPreview.style.display = 'block';
-            // This would show the hierarchy path
-            hierarchyPreview.querySelector('.hierarchy-path').innerHTML = `
-                <i class="bi bi-arrow-right me-2"></i>
-                <span class="text-muted">${selectedOption.textContent} > </span>
-                <span class="fw-bold">${nameInput.value || '新しい組織'}</span>
-            `;
-        } else {
-            hierarchyPreview.style.display = 'none';
-        }
-    }
-    
-    // Character counter for description
-    function updateCharacterCounter() {
-        const counter = document.getElementById('descriptionCount');
-        const currentLength = descriptionTextarea.value.length;
-        const maxLength = 1000;
-        
-        counter.textContent = currentLength;
-        
-        if (currentLength > maxLength * 0.9) {
-            counter.parentElement.classList.add('text-warning');
-        } else {
-            counter.parentElement.classList.remove('text-warning');
-        }
-        
-        if (currentLength > maxLength) {
-            counter.parentElement.classList.add('text-danger');
-            counter.parentElement.classList.remove('text-warning');
-        } else {
-            counter.parentElement.classList.remove('text-danger');
-        }
-    }
-    
-    descriptionTextarea.addEventListener('input', updateCharacterCounter);
-    updateCharacterCounter();
-    
-    // Template selection
-    const templates = {
-        sales: {
-            description: `営業部門は企業の売上拡大と顧客開拓を主要な任務とする組織です。
-
-主な業務内容:
-• 新規顧客の開拓・獲得
-• 既存顧客との関係維持・深耕
-• 売上目標の達成・管理
-• 市場調査・競合分析
-• 営業戦略の企画・実行
-
-この組織は企業の収益向上に直接貢献し、事業成長の重要な役割を担います。`,
-            childOrgs: ['法人営業部', '個人営業部', '営業推進部', '営業企画部']
-        },
-        tech: {
-            description: `技術部門は企業のシステム開発・技術革新を推進する組織です。
-
-主な業務内容:
-• システム・アプリケーションの開発
-• インフラの構築・運用・保守
-• 技術研究・新技術の導入検討
-• セキュリティ管理・対策
-• 技術標準・開発プロセスの策定
-
-この組織は企業のデジタル化推進と技術競争力向上を担います。`,
-            childOrgs: ['システム開発部', 'インフラ部', '品質管理部', '技術企画部']
-        },
-        admin: {
-            description: `管理部門は企業の経営基盤を支える重要な組織です。
-
-主な業務内容:
-• 人事制度の企画・運用
-• 総務・法務業務の実行
-• 経理・財務管理
-• 組織運営のサポート
-• コンプライアンス・リスク管理
-
-この組織は企業の持続的成長を支える基盤機能を提供します。`,
-            childOrgs: ['人事部', '総務部', '経理部', '法務部']
-        }
-    };
-    
-    document.querySelectorAll('.template-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const template = this.dataset.template;
-            const templateData = templates[template];
+        if (fromOrgSelect.value && toOrgSelect.value) {
+            const fromOrgName = fromOrgSelect.options[fromOrgSelect.selectedIndex].text;
+            const toOrgName = toOrgSelect.options[toOrgSelect.selectedIndex].text;
             
-            if (templateData) {
-                // Remove active class from all cards
-                document.querySelectorAll('.template-card').forEach(c => c.classList.remove('active'));
-                
-                // Add active class to clicked card
-                this.classList.add('active');
-                
-                // Fill description
-                descriptionTextarea.value = templateData.description;
-                updateCharacterCounter();
-                
-                // Show child organizations option
-                if (document.getElementById('createChildOrgs').checked) {
-                    showChildOrgsModal(templateData.childOrgs);
-                }
-                
-                // Animate the textarea
-                descriptionTextarea.classList.add('animate__animated', 'animate__pulse');
-                setTimeout(() => {
-                    descriptionTextarea.classList.remove('animate__animated', 'animate__pulse');
-                }, 1000);
-            }
-        });
-    });
-    
-    // KPI section toggle
-    document.getElementById('enableKPIs').addEventListener('change', function() {
-        const kpiSection = document.getElementById('kpiSection');
-        if (this.checked) {
-            kpiSection.style.display = 'block';
-            kpiSection.classList.add('animate__animated', 'animate__slideInDown');
+            preview.querySelector('.from-org .org-name').textContent = fromOrgName;
+            preview.querySelector('.to-org .org-name').textContent = toOrgName;
+            preview.style.display = 'block';
         } else {
-            kpiSection.style.display = 'none';
+            preview.style.display = 'none';
         }
+    }
+    
+    // Strength selector
+    const strengthSelect = document.getElementById('{{ form.strength.id_for_label }}');
+    
+    function updateStrengthPreview() {
+        const strength = parseInt(strengthSelect.value) || 1;
+        const stars = document.getElementById('strengthStars');
+        let starsHTML = '';
+        
+        for (let i = 1; i <= 5; i++) {
+            if (i <= strength) {
+                starsHTML += '<i class="bi bi-star-fill text-warning"></i>';
+            } else {
+                starsHTML += '<i class="bi bi-star text-muted"></i>';
+            }
+        }
+        
+        stars.innerHTML = starsHTML;
+    }
+    
+    strengthSelect.addEventListener('change', updateStrengthPreview);
+    updateStrengthPreview();
+    
+    // Character counter
+    const descriptionField = document.getElementById('{{ form.description.id_for_label }}');
+    const counter = document.getElementById('descriptionCounter');
+    
+    function updateCounter() {
+        const length = descriptionField.value.length;
+        counter.textContent = length;
+        counter.parentElement.classList.toggle('text-danger', length > 500);
+    }
+    
+    descriptionField.addEventListener('input', updateCounter);
+    updateCounter();
+    
+    // Tag functionality
+    const tagCheckboxes = document.querySelectorAll('.tag-checkbox');
+    const selectedTagsList = document.getElementById('selectedTagsList');
+    
+    function updateSelectedTags() {
+        const selectedTags = Array.from(tagCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => {
+                const label = document.querySelector(`label[for="${cb.id}"]`);
+                const color = label.dataset.color || '#007bff';
+                const name = label.textContent.trim();
+                return { name, color };
+            });
+        
+        selectedTagsList.innerHTML = selectedTags.length > 0 
+            ? selectedTags.map(tag => 
+                `<span class="badge me-1 mb-1" style="background-color: ${tag.color};">${tag.name}</span>`
+              ).join('')
+            : '<span class="text-muted small">タグが選択されていません</span>';
+    }
+    
+    tagCheckboxes.forEach(checkbox => {
+        const label = document.querySelector(`label[for="${checkbox.id}"]`);
+        const colorIndicator = label.querySelector('.tag-color-indicator');
+        
+        if (colorIndicator) {
+            colorIndicator.style.backgroundColor = label.dataset.color || '#007bff';
+            colorIndicator.style.width = '12px';
+            colorIndicator.style.height = '12px';
+            colorIndicator.style.borderRadius = '50%';
+        }
+        
+        checkbox.addEventListener('change', updateSelectedTags);
     });
     
-    // Child organizations modal
-    function showChildOrgsModal(childOrgs) {
-        const modal = new bootstrap.Modal(document.getElementById('childOrgsModal'));
-        const listContainer = document.getElementById('childOrgsList');
-        
-        let html = '<div class="row">';
-        childOrgs.forEach((org, index) => {
-            html += `
-                <div class="col-md-6 mb-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="childOrg${index}" checked>
-                        <label class="form-check-label" for="childOrg${index}">
-                            <strong>${org}</strong>
-                        </label>
-                    </div>
-                </div>
-            `;
-        });
-        html += '</div>';
-        
-        listContainer.innerHTML = html;
-        modal.show();
-    }
+    updateSelectedTags();
+    
+    // Monitor all form fields
+    const allFields = form.querySelectorAll('input, select, textarea');
+    allFields.forEach(field => {
+        field.addEventListener('input', updateFormProgress);
+        field.addEventListener('change', updateFormProgress);
+    });
+    
+    updateFormProgress();
     
     // Preview functionality
     document.getElementById('previewBtn').addEventListener('click', function() {
         const formData = new FormData(form);
         const previewContent = document.getElementById('previewContent');
         
-        const name = formData.get('name') || '（未入力）';
-        const level = levelSelect.options[levelSelect.selectedIndex]?.text || '（未選択）';
-        const parent = parentSelect.options[parentSelect.selectedIndex]?.text || '（なし）';
+        const fromOrgSelect = document.getElementById('{{ form.from_organization.id_for_label }}');
+        const toOrgSelect = document.getElementById('{{ form.to_organization.id_for_label }}');
+        const relationTypeSelect = document.getElementById('{{ form.relation_type.id_for_label }}');
+        
+        const fromOrg = fromOrgSelect.options[fromOrgSelect.selectedIndex]?.text || '（未選択）';
+        const toOrg = toOrgSelect.options[toOrgSelect.selectedIndex]?.text || '（未選択）';
+        const relationType = relationTypeSelect.options[relationTypeSelect.selectedIndex]?.text || '（未選択）';
+        const strength = formData.get('strength') || '1';
         const description = formData.get('description') || '（未入力）';
         
         previewContent.innerHTML = `
             <div class="row">
-                <div class="col-md-4 text-center">
-                    <div class="org-preview-icon mb-3">
-                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center shadow-lg"
-                             style="width: 100px; height: 100px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                            <i class="bi bi-building fs-1 text-white"></i>
+                <div class="col-12 text-center mb-4">
+                    <div class="relationship-flow">
+                        <div class="org-box mb-3">
+                            <div class="org-icon bg-primary text-white mb-2">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <strong>${fromOrg}</strong>
+                            <div class="small text-muted">関係元組織</div>
+                        </div>
+                        
+                        <div class="relation-info mb-3">
+                            <i class="bi bi-arrow-down fs-2 text-primary"></i>
+                            <div class="relation-details">
+                                <span class="badge bg-primary">${relationType}</span>
+                                <div class="mt-1">
+                                    強さ: ${'★'.repeat(parseInt(strength))}${'☆'.repeat(5 - parseInt(strength))}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="org-box">
+                            <div class="org-icon bg-success text-white mb-2">
+                                <i class="bi bi-building-check"></i>
+                            </div>
+                            <strong>${toOrg}</strong>
+                            <div class="small text-muted">関係先組織</div>
                         </div>
                     </div>
-                    <h5>${name}</h5>
-                    <p class="text-muted">${level}</p>
                 </div>
-                <div class="col-md-8">
-                    <h6>基本情報</h6>
-                    <p><strong>組織名:</strong> ${name}</p>
-                    <p><strong>階層レベル:</strong> ${level}</p>
-                    <p><strong>親組織:</strong> ${parent}</p>
-                    
-                    <h6 class="mt-3">説明・役割</h6>
-                    <p style="white-space: pre-line;">${description}</p>
+                
+                <div class="col-12">
+                    <h6>関係の詳細</h6>
+                    <p class="text-muted">${description}</p>
                 </div>
             </div>
         `;
@@ -820,187 +618,91 @@ document.addEventListener('DOMContentLoaded', function() {
         bootstrap.Modal.getOrCreateInstance(document.getElementById('previewModal')).show();
     });
     
-    // Form submission with loading state
+    // Form submission
     form.addEventListener('submit', function(e) {
-        const submitBtn = document.getElementById('submitBtn');
-        const originalText = submitBtn.innerHTML;
+        e.preventDefault();
         
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>処理中...';
         
         setTimeout(() => {
-            if (submitBtn.disabled) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-            }
-        }, 3000);
-    });
-    
-    // Initialize level preview
-    updateLevelPreview(levelSelect.value);
-    
-    // Enhanced animations
-    const inputs = form.querySelectorAll('input, select, textarea');
-    inputs.forEach((input, index) => {
-        input.style.animationDelay = `${index * 0.05}s`;
-        input.classList.add('animate__animated', 'animate__fadeInUp');
+            form.submit();
+        }, 1000);
     });
 });
 </script>
 
 <style>
-.level-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 10px;
+.org-box {
+    display: inline-block;
+    text-align: center;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.8);
 }
 
-.level-step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    padding: 10px;
-    border-radius: 8px;
-    opacity: 0.5;
-    transition: all 0.3s ease;
-}
-
-.level-step.active {
-    opacity: 1;
-    background: rgba(102, 126, 234, 0.1);
-    transform: scale(1.05);
-}
-
-.level-step i {
-    font-size: 1.5rem;
-}
-
-.level-badge {
-    width: 40px;
-    height: 40px;
+.org-icon {
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    margin: 0 auto;
+}
+
+.relation-arrow {
+    font-size: 2rem;
+    color: #007bff;
+    animation: pulse 2s infinite;
+}
+
+.type-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
     flex-shrink: 0;
 }
 
-.template-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 15px;
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.tag-color-indicator {
+    border: 1px solid rgba(0,0,0,0.1);
 }
 
-.template-card:hover {
-    border-color: #007bff;
-    background: rgba(0, 123, 255, 0.05);
-    transform: translateY(-2px);
+.tag-option .btn-check:checked + .btn {
+    background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-info) 100%);
+    border-color: var(--bs-primary);
+    color: white;
 }
 
-.template-card.active {
-    border-color: #007bff;
-    background: rgba(0, 123, 255, 0.1);
+.tag-check-icon {
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
-.template-icon i {
-    font-size: 1.5rem;
+.tag-option .btn-check:checked + .btn .tag-check-icon {
+    opacity: 1;
 }
 
-.hierarchy-preview {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 8px;
-    border-left: 4px solid #007bff;
+.relationship-flow .org-box {
+    background: rgba(248, 249, 250, 0.9);
+    border: 2px solid #dee2e6;
 }
 
-.structure-path {
+.relationship-flow .relation-info {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-}
-
-.structure-item {
-    display: flex;
     align-items: center;
-    padding: 8px 12px;
-    background: #f8f9fa;
-    border-radius: 6px;
+    gap: 0.5rem;
 }
 
-.structure-item.current {
-    background: rgba(0, 123, 255, 0.1);
-    border-left: 4px solid #007bff;
+.strength-preview {
+    font-size: 1.1rem;
 }
 
-.structure-connector {
-    width: 2px;
-    height: 15px;
-    background: #dee2e6;
-    margin-left: 20px;
-}
-
-.character-counter {
-    text-align: right;
-    margin-top: 5px;
-}
-
-.tip-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-}
-
-.stat-item {
-    padding: 8px 0;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.stat-item:last-child {
-    border-bottom: none;
-}
-
-.hierarchy-guide .level-guide {
-    position: relative;
-    padding-left: 0;
-}
-
-.hierarchy-guide .level-guide:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    left: 19px;
-    top: 40px;
-    width: 2px;
-    height: 20px;
-    background: #dee2e6;
-}
-
-/* Form enhancements */
-.form-control:focus {
-    box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
-    border-color: #667eea;
-}
-
-.form-select:focus {
-    box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
-    border-color: #667eea;
-}
-
-.is-valid {
-    border-color: #28a745;
-}
-
-.is-invalid {
-    border-color: #dc3545;
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 }
 </style>
 {% endblock %}

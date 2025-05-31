@@ -19,6 +19,14 @@ urlpatterns = [
     path('organizations/<int:pk>/edit/', views.OrganizationUpdateView.as_view(), name='organization_edit'),
     path('organizations/<int:pk>/delete/', views.OrganizationDeleteView.as_view(), name='organization_delete'),
     
+    # 組織関係
+    path('organization-relations/', views.OrganizationRelationListView.as_view(), name='organization_relation_list'),
+    path('organization-relations/<int:pk>/', views.OrganizationRelationDetailView.as_view(), name='organization_relation_detail'),
+    path('organization-relations/create/', views.OrganizationRelationCreateView.as_view(), name='organization_relation_create'),
+    path('organization-relations/<int:pk>/edit/', views.OrganizationRelationUpdateView.as_view(), name='organization_relation_edit'),
+    path('organization-relations/<int:pk>/delete/', views.OrganizationRelationDeleteView.as_view(), name='organization_relation_delete'),
+    path('organization-relations/matrix/', views.organization_relation_matrix_view, name='organization_relation_matrix'),
+    
     # 関連図
     path('graph/', views.RelationshipGraphView.as_view(), name='relationship_graph'),
     
@@ -36,4 +44,8 @@ urlpatterns = [
     path('api/tags/<int:tag_id>/update/', views.update_tag_ajax, name='update_tag_ajax'),
     path('api/tags/<int:tag_id>/delete/', views.delete_tag_ajax, name='delete_tag_ajax'),
     path('api/tags/<int:tag_id>/details/', views.get_tag_details, name='get_tag_details'),
+    
+    # 組織関係 AJAX API
+    path('api/organization-relations/create/', views.create_organization_relation_ajax, name='create_organization_relation_ajax'),
+    path('api/organization-relations/<int:relation_id>/delete/', views.delete_organization_relation_ajax, name='delete_organization_relation_ajax'),
 ]

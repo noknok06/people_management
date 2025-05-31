@@ -1,0 +1,371 @@
+<!-- templates/people/organization_relation_confirm_delete.html -->
+{% extends 'base.html' %}
+
+{% block title %}組織関係を削除 - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-4 pb-3 mb-4">
+    <div>
+        <h1 class="h2 animate__animated animate__fadeInDown">
+            <i class="bi bi-exclamation-triangle text-danger me-3"></i>
+            組織関係削除の確認
+        </h1>
+        <p class="text-muted animate__animated animate__fadeInUp animate__delay-1s">
+            以下の組織関係を完全に削除します。この操作は元に戻すことができません。
+        </p>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'organization_relation_detail' object.pk %}" class="btn btn-outline-secondary animate__animated animate__fadeInRight">
+            <i class="bi bi-arrow-left me-2"></i> 詳細に戻る
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>削除対象の組織関係
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Relationship Display -->
+                <div class="relationship-display mb-4">
+                    <div class="row text-center">
+                        <!-- From Organization -->
+                        <div class="col-md-5">
+                            <div class="organization-card border border-primary rounded p-3">
+                                <div class="org-icon mb-3" style="background: {% if object.from_organization.level == 0 %}#dc3545{% elif object.from_organization.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
+                                    <i class="bi bi-building text-white"></i>
+                                </div>
+                                <h5 class="org-level-{{ object.from_organization.level }} mb-1">
+                                    {{ object.from_organization.name }}
+                                </h5>
+                                <p class="text-muted mb-1">{{ object.from_organization.get_level_display }}</p>
+                                <small class="text-muted">{{ object.from_organization.get_full_path }}</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-primary">関係元組織</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Relationship Arrow and Details -->
+                        <div class="col-md-2 d-flex flex-column justify-content-center align-items-center">
+                            <i class="bi bi-arrow-right fs-1 text-danger mb-2"></i>
+                            <span class="badge relation-type-badge" data-type="{{ object.relation_type }}">
+                                {{ object.get_relation_type_display }}
+                            </span>
+                            <div class="strength-display mt-2">
+                                {% for i in "12345"|make_list %}
+                                    <i class="bi bi-star{% if forloop.counter <= object.strength %}-fill text-warning{% else %} text-muted{% endif %}"></i>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- To Organization -->
+                        <div class="col-md-5">
+                            <div class="organization-card border border-success rounded p-3">
+                                <div class="org-icon mb-3" style="background: {% if object.to_organization.level == 0 %}#dc3545{% elif object.to_organization.level == 1 %}#ffc107{% else %}#17a2b8{% endif %};">
+                                    <i class="bi bi-building text-white"></i>
+                                </div>
+                                <h5 class="org-level-{{ object.to_organization.level }} mb-1">
+                                    {{ object.to_organization.name }}
+                                </h5>
+                                <p class="text-muted mb-1">{{ object.to_organization.get_level_display }}</p>
+                                <small class="text-muted">{{ object.to_organization.get_full_path }}</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-success">関係先組織</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Relationship Details -->
+                <div class="relationship-details mb-4">
+                    <h6 class="mb-3">
+                        <i class="bi bi-info-circle me-2"></i>関係の詳細情報
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="detail-item mb-3">
+                                <strong>関係の種類:</strong>
+                                <span class="ms-2 relation-type-badge" data-type="{{ object.relation_type }}">
+                                    {{ object.get_relation_type_display }}
+                                </span>
+                            </div>
+                            <div class="detail-item mb-3">
+                                <strong>関係の強さ:</strong>
+                                <span class="ms-2">
+                                    {% for i in "12345"|make_list %}
+                                        <i class="bi bi-star{% if forloop.counter <= object.strength %}-fill text-warning{% else %} text-muted{% endif %}"></i>
+                                    {% endfor %}
+                                    ({{ object.strength }}/5)
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="detail-item mb-3">
+                                <strong>作成日:</strong>
+                                <span class="ms-2">{{ object.created_at|date:"Y年m月d日 H:i" }}</span>
+                            </div>
+                            <div class="detail-item mb-3">
+                                <strong>最終更新:</strong>
+                                <span class="ms-2">{{ object.updated_at|date:"Y年m月d日 H:i" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if object.description %}
+                        <div class="detail-item">
+                            <strong>説明:</strong>
+                            <div class="mt-2 p-3 bg-light rounded">
+                                {{ object.description|linebreaks }}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Tags -->
+                {% if object.tags.all %}
+                    <div class="tags-section mb-4">
+                        <h6 class="mb-3">
+                            <i class="bi bi-tags me-2"></i>関連タグ
+                        </h6>
+                        <div class="tags-display">
+                            {% for tag in object.tags.all %}
+                                <span class="tag-badge me-2 mb-2" style="background-color: {{ tag.color }};">
+                                    <i class="bi bi-tag me-1"></i>{{ tag.name }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                        <small class="text-muted">
+                            <i class="bi bi-exclamation-circle me-1"></i>
+                            これらのタグとの関連付けも削除されます
+                        </small>
+                    </div>
+                {% endif %}
+                
+                <!-- Impact Assessment -->
+                <div class="impact-assessment mb-4">
+                    <div class="alert alert-warning">
+                        <h6>
+                            <i class="bi bi-exclamation-triangle me-2"></i>削除による影響
+                        </h6>
+                    </div>
+                    
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="impact-item p-3 border rounded">
+                                <h3 class="text-danger mb-1">1</h3>
+                                <small class="text-muted">組織関係</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-danger">削除される</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="impact-item p-3 border rounded">
+                                <h3 class="text-warning mb-1">{{ object.tags.count }}</h3>
+                                <small class="text-muted">タグの関連付け</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-warning">解除される</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="impact-item p-3 border rounded">
+                                <h3 class="text-info mb-1">0</h3>
+                                <small class="text-muted">組織への影響</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-success">影響なし</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Confirmation -->
+                <div class="confirmation-section">
+                    <div class="alert alert-danger">
+                        <h6>
+                            <i class="bi bi-exclamation-triangle me-2"></i>重要な注意事項
+                        </h6>
+                        <ul class="mb-0">
+                            <li>この組織関係は完全に削除され、復元することはできません</li>
+                            <li>関連するタグとの関連付けも同時に削除されます</li>
+                            <li>削除後は、組織間の関連図からこの関係が除外されます</li>
+                            <li>組織自体は削除されません</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="confirmDeletion" required>
+                            <label class="form-check-label" for="confirmDeletion">
+                                <strong>確認:</strong> 上記の内容を理解し、組織関係「{{ object.from_organization.name }} → {{ object.to_organization.name }} ({{ object.get_relation_type_display }})」を削除することに同意します。
+                            </label>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'organization_relation_detail' object.pk %}" class="btn btn-outline-secondary btn-lg">
+                                <i class="bi bi-x-circle me-2"></i>キャンセル
+                            </a>
+                            
+                            <button type="submit" class="btn btn-danger btn-lg" id="deleteButton" disabled>
+                                <i class="bi bi-trash me-2"></i>削除を実行
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmCheckbox = document.getElementById('confirmDeletion');
+    const deleteButton = document.getElementById('deleteButton');
+    
+    // Enable/disable delete button based on checkbox
+    confirmCheckbox.addEventListener('change', function() {
+        deleteButton.disabled = !this.checked;
+        
+        if (this.checked) {
+            deleteButton.classList.remove('btn-secondary');
+            deleteButton.classList.add('btn-danger');
+        } else {
+            deleteButton.classList.remove('btn-danger');
+            deleteButton.classList.add('btn-secondary');
+        }
+    });
+    
+    // Final confirmation before deletion
+    deleteButton.addEventListener('click', function(e) {
+        if (!confirm('本当に削除してもよろしいですか？この操作は元に戻すことができません。')) {
+            e.preventDefault();
+        } else {
+            // Show loading state
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>削除中...';
+        }
+    });
+    
+    // Animation effects
+    const impactItems = document.querySelectorAll('.impact-item');
+    impactItems.forEach((item, index) => {
+        item.style.animationDelay = `${index * 0.2}s`;
+        item.classList.add('animate__animated', 'animate__fadeInUp');
+    });
+    
+    // Hover effects for impact items
+    impactItems.forEach(item => {
+        item.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-3px)';
+            this.style.transition = 'transform 0.3s ease';
+            this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+        });
+        
+        item.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = '';
+        });
+    });
+    
+    // Pulse animation for relationship arrow
+    const arrow = document.querySelector('.bi-arrow-right');
+    if (arrow) {
+        arrow.style.animation = 'pulse 2s infinite';
+    }
+});
+</script>
+
+<style>
+.org-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.organization-card {
+    transition: all 0.3s ease;
+    background: rgba(248, 249, 250, 0.8);
+}
+
+.organization-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.relation-type-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.relation-type-badge[data-type="cooperation"] { background-color: #007bff; color: white; }
+.relation-type-badge[data-type="reporting"] { background-color: #28a745; color: white; }
+.relation-type-badge[data-type="support"] { background-color: #ffc107; color: #000; }
+.relation-type-badge[data-type="partnership"] { background-color: #dc3545; color: white; }
+.relation-type-badge[data-type="dependency"] { background-color: #6f42c1; color: white; }
+.relation-type-badge[data-type="communication"] { background-color: #17a2b8; color: white; }
+
+.tag-badge {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 16px;
+    color: white;
+    font-weight: 500;
+    font-size: 0.8rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.impact-item {
+    transition: all 0.3s ease;
+    border-color: #dee2e6 !important;
+}
+
+.detail-item {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.strength-display {
+    font-size: 1.2rem;
+}
+
+.confirmation-section .form-check-label {
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+</style>
+{% endblock %}
